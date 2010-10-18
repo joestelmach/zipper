@@ -21,7 +21,6 @@ import com.googlecode.jslint4java.JSLint;
 import com.googlecode.jslint4java.JSLintBuilder;
 import com.googlecode.jslint4java.JSLintResult;
 import com.googlecode.jslint4java.Option;
-import com.yahoo.platform.yui.compressor.CssCompressor;
 
 /**
  * @author Joe Stelmach
