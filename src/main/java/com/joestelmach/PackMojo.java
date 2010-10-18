@@ -77,6 +77,11 @@ public class PackMojo extends AbstractMojo {
   private boolean bustCache;
   
   /**
+   * @parameter
+   */
+  private List<JavascriptGroup> javascriptGroups; 
+  
+  /**
    * 
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
@@ -87,6 +92,7 @@ public class PackMojo extends AbstractMojo {
     if(!lintSkip) lintCheckJs();
     optimizeJs();
     minifyCss();
+    group();
     if(bustCache) bustCache();
   }
   
@@ -186,6 +192,17 @@ public class PackMojo extends AbstractMojo {
       }
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
+    }
+  }
+  
+  /*
+   * 
+   */
+  private void group() {
+    if(javascriptGroups == null) return;
+    
+    for(JavascriptGroup group:javascriptGroups) {
+      System.out.println(group.getName());
     }
   }
   

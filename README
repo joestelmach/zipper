@@ -43,19 +43,13 @@ The optimize goal is broken down into the following configurable steps:
   groups of concatenated files, thereby minimizing http requests.
   
   <jsGroups>
-    <common>
+    <jsGroup>
+      <name>common</name>
       <includes>
         <include>prototype.js</include> 
         <include>**/*</include> 
       </includes>
-    </common>
-    
-    <portal>
-      <includes>
-        <include>prototype.js</include> 
-        <include>**/*</include> 
-      </includes>
-    </portal>
+    </jsGroup>
   </jsGroups>
   
 - cache bust css -
