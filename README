@@ -39,24 +39,23 @@ The optimize goal is broken down into the following configurable steps:
   extenstion along side of the original file.
   
 - group -
-  If grouping has been enabled with the <TODO> parameter, we will concatenate
-  all of the minified css files into a single style-all.css file placed
-  in the directory configured by the <TODO> parameter, or in the root
-  build directory if no directory is configured.  The same will be done
-  for the optimized javascript files using the script-all.js file name.
-  
-  Some projects may need to define the order of the grouping, as some 
-  scripts may depend on other scripts being loaded before their own.
-  This problem can be handled by enabling asset grouping:
+  Zipper allows you to group your optimized assets into configurable
+  groups of concatenated files, thereby minimizing http requests.
   
   <jsGroups>
-    <jsGroup>
-      <id>foo</id>
-      <deleteComponents>true</deleteComponents>
-      <fileIncludes>
-        <fileInclud></fileInclude> 
-      </fileIncludes>
-    </jsGroup> 
+    <common>
+      <includes>
+        <include>prototype.js</include> 
+        <include>**/*</include> 
+      </includes>
+    </common>
+    
+    <portal>
+      <includes>
+        <include>prototype.js</include> 
+        <include>**/*</include> 
+      </includes>
+    </portal>
   </jsGroups>
   
 - cache bust css -
@@ -64,7 +63,7 @@ The optimize goal is broken down into the following configurable steps:
   
   <bustCache>true<bustCache>
   
-  When enabled, have two additional steps to take.  First, we append the current
+  When enabled, we have two additional steps to take.  First, we append the current
   timestamp as a paramter to each minified css file and each optimized 
   javascript file.  Next we need to browse through each minified css file 
   and look for any url(...) rules, and append the timestamp parameter to 

@@ -71,7 +71,10 @@ public class PackMojo extends AbstractMojo {
    */
   private String closureOptions;
   
-  /************************************/
+  /**
+   * @parameter default-value="false" 
+   */
+  private boolean bustCache;
   
   /**
    * 
@@ -84,6 +87,7 @@ public class PackMojo extends AbstractMojo {
     if(!lintSkip) lintCheckJs();
     optimizeJs();
     minifyCss();
+    if(bustCache) bustCache();
   }
   
   /**
@@ -183,6 +187,14 @@ public class PackMojo extends AbstractMojo {
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
     }
+  }
+  
+  /**
+   * 
+   */
+  private void bustCache() {
+    getLog().info("performing cache busting");
+    
   }
   
   /**
