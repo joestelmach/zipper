@@ -10,9 +10,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
-public class JSOptimizer {
-  public JSOptimizer() {
-    unpackClosureCompiler();
+public class JavascriptClosureOptimizer {
+  public JavascriptClosureOptimizer() {
+    unpackCompiler();
   }
   
   /**
@@ -22,10 +22,9 @@ public class JSOptimizer {
    * @throws IOException
    * @throws InterruptedException
    */
-  public void optimize(String fileName, String options) throws IOException, InterruptedException {
-    String outputFileName = fileName.substring(0, fileName.length() - 3) + "-min.js";
+  public void optimize(String inputFileName, String outputFileName, String options) throws IOException, InterruptedException {
     options = options != null ? options : "";
-    String command = "java -jar /tmp/compiler.jar " + options + " --js " + fileName + 
+    String command = "java -jar /tmp/compiler.jar " + options + " --js " + inputFileName + 
       " --js_output_file " + outputFileName;
     System.out.println(command);
     Process proc = Runtime.getRuntime().exec(command);
@@ -51,7 +50,7 @@ public class JSOptimizer {
    * 
    * see: http://code.google.com/p/closure-compiler/issues/detail?id=37
    */
-  private void unpackClosureCompiler() {
+  private void unpackCompiler() {
     // write the closure compiler to the build dir
     InputStream in = new BufferedInputStream(PackMojo.class.getResourceAsStream("/compiler.jar"));
     try {

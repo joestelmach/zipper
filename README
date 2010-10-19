@@ -42,15 +42,24 @@ The optimize goal is broken down into the following configurable steps:
   Zipper allows you to group your optimized assets into configurable
   groups of concatenated files, thereby minimizing http requests.
   
-  <jsGroups>
-    <jsGroup>
+  <javascriptGroups>
+    <javascriptGroup>
       <name>common</name>
       <includes>
         <include>prototype.js</include> 
         <include>**/*</include> 
       </includes>
-    </jsGroup>
-  </jsGroups>
+    </javascriptGroup>
+  </javascriptGroups>
+  
+  <stylesheetGroups>
+    <stylesheetGroup>
+      <name>barfoo</name>
+      <includes>
+        <include>**/*.css</include>
+      <includes>
+    </stylesheetGroup>
+  </stylesheetGroups>
   
 - cache bust css -
   Cache busting can be enabled with the bustCache option:

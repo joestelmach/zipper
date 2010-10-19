@@ -16,13 +16,12 @@ import com.yahoo.platform.yui.compressor.CssCompressor;
  * @author Joe Stelmach
  *
  */
-public class CssMinifier {
-  public CssMinifier() {}
+public class StylesheetYuiMinifier {
+  public StylesheetYuiMinifier() {}
   
-  public void minify(String fileName) throws IOException {
-    Reader in = new BufferedReader(new FileReader(new File(fileName)));
+  public void minify(String inputFileName, String outputFileName) throws IOException {
+    Reader in = new BufferedReader(new FileReader(new File(inputFileName)));
     CssCompressor compressor = new CssCompressor(in);
-    String outputFileName = fileName.substring(0, fileName.length() - 4) + "-min.css";
     Writer out = new BufferedWriter(new FileWriter(new File(outputFileName)));
     compressor.compress(out, 0);
     out.close();

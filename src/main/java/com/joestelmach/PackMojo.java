@@ -1,14 +1,23 @@
 package com.joestelmach;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -33,8 +42,8 @@ public class PackMojo extends AbstractMojo {
   
   private List<String> _javascriptFileNames;
   private List<String> _cssFileNames;
-  private JSOptimizer _jsOptimizer;
-  private CssMinifier _cssMinifier;
+  private JavascriptClosureOptimizer _jsOptimizer;
+  private StylesheetYuiMinifier _cssMinifier;
   
   /**
    * The maven project.
@@ -80,6 +89,11 @@ public class PackMojo extends AbstractMojo {
    * @parameter
    */
   private List<JavascriptGroup> javascriptGroups; 
+  
+  /**
+   * @parameter
+   */
+  private List<StylesheetGroup> stylesheetGroups; 
   
   /**
    * 
@@ -165,13 +179,13 @@ public class PackMojo extends AbstractMojo {
    */
   private void optimizeJs() throws MojoFailureException {
     if(_jsOptimizer == null) {
-      _jsOptimizer = new JSOptimizer();
+      _jsOptimizer = new JavascriptClosureOptimizer();
     }
     
     try {
       for(String fileName:_javascriptFileNames) {
         getLog().info("optimizing " + fileName.substring(fileName.lastIndexOf('/') + 1));
-        _jsOptimizer.optimize(fileName, closureOptions);
+        _jsOptimizer.optimize(fileName, getOptimizedName(fileName), closureOptions);
       }
     } catch (Exception e) {
       throw new MojoFailureException(e.getMessage());
@@ -183,12 +197,12 @@ public class PackMojo extends AbstractMojo {
    */
   private void minifyCss() throws MojoFailureException {
     if(_cssMinifier == null) {
-      _cssMinifier = new CssMinifier();
+      _cssMinifier = new StylesheetYuiMinifier();
     }
     try {
       for(String fileName:_cssFileNames) {
         getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
-        _cssMinifier.minify(fileName);
+        _cssMinifier.minify(fileName, getOptimizedName(fileName));
       }
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
@@ -198,11 +212,108 @@ public class PackMojo extends AbstractMojo {
   /*
    * 
    */
-  private void group() {
-    if(javascriptGroups == null) return;
+  private void group() throws MojoExecutionException {
+    String outputDirectory = _project.getBuild().getOutputDirectory();
+    if(javascriptGroups != null) {
+      processGroup(javascriptGroups, outputDirectory, ".js");
+    }
     
-    for(JavascriptGroup group:javascriptGroups) {
-      System.out.println(group.getName());
+    if(stylesheetGroups != null) {
+      processGroup(stylesheetGroups, outputDirectory, ".css");
+    }
+  }
+  
+  /**
+   * Processes the given asset group, combining the optimized version of each 
+   * included file into a new file with the group's name, stored in the given 
+   * directory.
+   * 
+   * @param groups
+   * @throws MojoExecutionException 
+   */
+  private void processGroup(List<? extends AbstractGroup> groups, 
+      String outputDirectory, String outputSuffix) throws MojoExecutionException {
+    
+    // for each group, we'll create a unique list of files that should
+    // be included, and attempt to combine them with the configured name
+    for(AbstractGroup group:groups) {
+      Set<String> includedOptimizedFiles = new LinkedHashSet<String>();
+      getLog().info("building asset " + group.getName());
+      for(String include:group.getIncludes()) {
+        for(String fileName:findFileNames(include)) {
+          includedOptimizedFiles.add(getOptimizedName(fileName));
+        }
+      }
+      
+      String outputFileName = outputDirectory + "/" + group.getName() + outputSuffix;
+      combineAssets(includedOptimizedFiles, outputFileName, group.getGzip());
+    }
+  }
+  
+  /**
+   * Combines the given assets into a file with the given name
+   * 
+   * @param assets
+   * @param outputFileName
+   * @throws MojoExecutionException if an asset cannot be found, or an IOException occurs
+   */
+  private void combineAssets(Collection<String> assets, String outputFileName, boolean gzip) 
+      throws MojoExecutionException {
+    
+    if(gzip) outputFileName += ".gz";
+    
+    File outputFile = new File(outputFileName);
+    OutputStream output = null;
+    boolean success = true;
+    try {
+      if(!outputFile.exists()) outputFile.createNewFile();
+      output = new BufferedOutputStream(new FileOutputStream(outputFile));
+      if(gzip) output = new GZIPOutputStream(output);
+      
+      for(String asset:assets) {
+        File file = new File(asset);
+        if(!file.exists()) {
+          success = false;
+          throw new MojoExecutionException("couldn't find file " + asset +
+            ".  Please specify the path using the standard ant patterns: " +
+            "http://ant.apache.org/manual/dirtasks.html#patterns");
+        }
+        else {
+          getLog().info("adding file: " + asset);
+          writeAssetToStream(asset, output);
+        }
+      }
+        
+    } catch (IOException e) {
+      getLog().error("couldn't create asset file " + outputFileName, e);
+      throw new MojoExecutionException("Something went wrong combining assets.", e);
+      
+    } finally {
+      try {
+        if(output != null) output.close();
+        if(!success) outputFile.delete();
+        
+      } catch (IOException e) {
+        getLog().error("couldn't close writer", e);
+      }
+    }
+  }
+  
+  /**
+   * 
+   * @param assetFileName
+   * @param writer
+   */
+  private void writeAssetToStream(String assetFileName, OutputStream output) throws IOException {
+    InputStream input = null;
+    try {
+      input = new BufferedInputStream(new FileInputStream(new File(assetFileName)));
+      while(input.available() > 0) {
+        output.write(input.read());
+      }
+      
+    } finally {
+      if(input != null) input.close();
     }
   }
   
@@ -244,8 +355,14 @@ public class PackMojo extends AbstractMojo {
     return fileNames;
   }
   
-  public static void main(String[] args) throws Exception {
- 
-    
+  /**
+   * 
+   * @param originalName
+   * @return
+   */
+  private String getOptimizedName(String originalName) {
+    String suffix = originalName.endsWith(".css") ? "-min.css" : "-min.js";
+    int suffixLength = suffix.length() - 4;
+    return originalName.substring(0, originalName.length() - suffixLength) + suffix;
   }
 }
