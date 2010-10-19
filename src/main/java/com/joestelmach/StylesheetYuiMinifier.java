@@ -19,11 +19,11 @@ import com.yahoo.platform.yui.compressor.CssCompressor;
 public class StylesheetYuiMinifier {
   public StylesheetYuiMinifier() {}
   
-  public void minify(String inputFileName, String outputFileName) throws IOException {
+  public void minify(String inputFileName, String outputFileName, int lineBreakPosition) throws IOException {
     Reader in = new BufferedReader(new FileReader(new File(inputFileName)));
     CssCompressor compressor = new CssCompressor(in);
     Writer out = new BufferedWriter(new FileWriter(new File(outputFileName)));
-    compressor.compress(out, 0);
+    compressor.compress(out, lineBreakPosition);
     out.close();
     in.close();
   }

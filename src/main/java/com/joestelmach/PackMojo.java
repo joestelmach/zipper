@@ -11,7 +11,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -78,12 +80,22 @@ public class PackMojo extends AbstractMojo {
   /**
    * @parameter default-value=""
    */
-  private String closureOptions;
+  private String optimizeOptions;
+  
+  /**
+   * @parameter default-value=""
+   */
+  private int minifyLineBreak;
   
   /**
    * @parameter default-value="false" 
    */
   private boolean bustCache;
+  
+  /**
+   * @parameter default-value="static" 
+   */
+  private String groupOutputDirectory;
   
   /**
    * @parameter
@@ -102,6 +114,27 @@ public class PackMojo extends AbstractMojo {
     // first we find the files we'll be working with
     _javascriptFileNames = findFileNames("**/*.js");
     _cssFileNames = findFileNames("**/*.css");
+    
+    // if no javascript groups have been configured, we create the default group
+    // consisting of all the javascript files
+    if(javascriptGroups == null) {
+      JavascriptGroup group = new JavascriptGroup();
+      group.setName("script-all");
+      group.setIncludes(Arrays.asList(new String[]{"**/*.js"}));
+      group.setGzip(true);
+      javascriptGroups = new ArrayList<JavascriptGroup>();
+      javascriptGroups.add(group);
+    }
+    
+    // same goes for the stylesheets
+    if(stylesheetGroups == null) {
+      StylesheetGroup group = new StylesheetGroup();
+      group.setName("style-all");
+      group.setIncludes(Arrays.asList(new String[]{"**/*.css"}));
+      group.setGzip(true);
+      stylesheetGroups = new ArrayList<StylesheetGroup>();
+      stylesheetGroups.add(group);
+    }
     
     if(!lintSkip) lintCheckJs();
     optimizeJs();
@@ -185,7 +218,7 @@ public class PackMojo extends AbstractMojo {
     try {
       for(String fileName:_javascriptFileNames) {
         getLog().info("optimizing " + fileName.substring(fileName.lastIndexOf('/') + 1));
-        _jsOptimizer.optimize(fileName, getOptimizedName(fileName), closureOptions);
+        _jsOptimizer.optimize(fileName, getOptimizedName(fileName), optimizeOptions);
       }
     } catch (Exception e) {
       throw new MojoFailureException(e.getMessage());
@@ -202,7 +235,7 @@ public class PackMojo extends AbstractMojo {
     try {
       for(String fileName:_cssFileNames) {
         getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
-        _cssMinifier.minify(fileName, getOptimizedName(fileName));
+        _cssMinifier.minify(fileName, getOptimizedName(fileName), minifyLineBreak);
       }
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
@@ -213,14 +246,12 @@ public class PackMojo extends AbstractMojo {
    * 
    */
   private void group() throws MojoExecutionException {
-    String outputDirectory = _project.getBuild().getOutputDirectory();
-    if(javascriptGroups != null) {
-      processGroup(javascriptGroups, outputDirectory, ".js");
+    File outputDirectory = new File(_project.getBuild().getOutputDirectory() + "/" + groupOutputDirectory);
+    if(!outputDirectory.exists()) {
+      outputDirectory.mkdirs();
     }
-    
-    if(stylesheetGroups != null) {
-      processGroup(stylesheetGroups, outputDirectory, ".css");
-    }
+    processGroups(javascriptGroups, outputDirectory.getAbsolutePath(), ".js");
+    processGroups(stylesheetGroups, outputDirectory.getAbsolutePath(), ".css");
   }
   
   /**
@@ -231,7 +262,7 @@ public class PackMojo extends AbstractMojo {
    * @param groups
    * @throws MojoExecutionException 
    */
-  private void processGroup(List<? extends AbstractGroup> groups, 
+  private void processGroups(List<? extends AbstractGroup> groups, 
       String outputDirectory, String outputSuffix) throws MojoExecutionException {
     
     // for each group, we'll create a unique list of files that should
@@ -239,14 +270,24 @@ public class PackMojo extends AbstractMojo {
     for(AbstractGroup group:groups) {
       Set<String> includedOptimizedFiles = new LinkedHashSet<String>();
       getLog().info("building asset " + group.getName());
+      
+      Set<String> excludedFiles = new HashSet<String>();
+      for(String exclude:group.getExcludes()) {
+        excludedFiles.addAll(findFileNames(getOptimizedName(exclude)));
+      }
+        
       for(String include:group.getIncludes()) {
         for(String fileName:findFileNames(include)) {
-          includedOptimizedFiles.add(getOptimizedName(fileName));
+          if(!excludedFiles.contains(include) && !fileName.endsWith("-min.js") && !fileName.endsWith("-min.css")) {
+            includedOptimizedFiles.add(getOptimizedName(fileName));
+          }
         }
       }
       
       String outputFileName = outputDirectory + "/" + group.getName() + outputSuffix;
-      combineAssets(includedOptimizedFiles, outputFileName, group.getGzip());
+      if(includedOptimizedFiles.size() > 0) {
+        combineAssets(includedOptimizedFiles, outputFileName, group.getGzip());
+      }
     }
   }
   
