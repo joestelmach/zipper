@@ -2,16 +2,29 @@
 <html>
   <head>
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Zipper: Asset Packaging for Maven</title>
-  <head>
+    <title>zipper: asset packaging for maven</title>
+
+    <script type="text/javascript" src="./javascript/highlight.pack.js"></script>
+    <script type="text/javascript">hljs.initHighlightingOnLoad();</script>
+
+    <link rel="stylesheet" href="./style/layout.css" type="text/css" media="screen" /> 
+  </head>
   <body>
-    <h1>Zipper</h1>
+
+<pre id="heading">+-++-++-++-++-++-+
+|z||i||p||p||e||r|
++-++-++-++-++-++-+</pre>
+
     <p>
-      <a href="http://github.com/joestelmach/zipper">Zipper</a> is a
-      full-featured asset packaging plugin for Maven that provides JavaScript
-      lint lint checking, Closure Compiler and YUI Compressor support, CSS
-      and JavaScript concatenation, and up-front gzipping. 
+      zipper is a full-featured asset packaging plugin for 
+      <a href="http://maven.apache.org/">Maven</a> that provides
+      JavaScript lint checking, Closure Compiler and YUI Compressor integration,
+      CSS/JavaScript concatenation, and gzipping.  The source code can 
+      be found on <a href="https://github.com/joestelmach/zipper">github</a>.
+    </p>
+    <p>
+      <span class="version">0.1-SNAPSHOT</span> is the current version. If you're having 
+      trouble, please <a href="https://github.com/joestelmach/zipper/issues">let me know</a>.
     </p>
 
     <h2>Getting Started</h2>
@@ -35,9 +48,9 @@
       &lt;goals&gt;
     &lt;execution&gt;
   &lt;executions&gt;
-&lt;plugin&gt;</pre></code>
+&lt;plugin&gt;</code></pre>
 <em>Note: The plugin should be available in the Central Maven Repository
-shortly.</em>
+shortly</em>
       </li>
 
       <li>
@@ -49,78 +62,95 @@ shortly.</em>
 
     <h3 id="configuration">Configuration</h3>
     <p>
-      Zipper's configuration options can be broken down into four sections: 
+      zipper's configuration can be broken down into four sections: 
       <a href="#configuration_lint"> JavaScript lint</a>, 
       <a href="#configuration_js_optimization">JavaScript optimization</a>,
       <a href="#configration_css">CSS minification</a>, and
-      <a href="#configration_groupint">asset grouping.</a>
+      <a href="#configration_grouping">asset grouping.</a>
     </p>
 
     <dl>
       <dt id="configuration_lint">JavaScript lint</dt>
       <dd>
         <p>
-          Zipper will run your JavaScript through the excellent 
+          Zipper will run your JavaScript through the 
           <a href="http://www.jslint.com/">JSLint</a> code quality tool by
           default, and report any warnings found.  If you wish to skip this 
           check, pass the <em>lintSkip</em> option:
-          <code>&lt;lintSkip&gt;true&lt;/lintSkip&gt;</code>
         </p>
+<pre><code>&lt;lintSkip&gt;true&lt;/lintSkip&gt;</code></pre>
 
         <p>
           If you would like to run the lint check but exclude certain
           files, use the <em>lintExcludes</em> option:
+        </p>
 <pre><code>&lt;lintExcludes&gt;
   &lt;lintExclude&gt;prototype.js&lt;lintExclude&gt;
   &lt;lintExclude&gt;scriptaculous.js&lt;lintExclude&gt;
 &lt;lintExcludes&gt;</code></pre>
-        </p>
 
         <p>
           You can customize the jslint execution with any combination of 
           <a href="http://www.jslint.com/lint.html#options">defined
           options</a>.  For example, the following will allow bitwise 
           operators and eval statements:
-          <pre><code>&lt;lintOptions&gt;
+        </p>
+<pre><code>&lt;lintOptions&gt;
   &lt;bitwise&gt;true&lt;/bitwise&gt;
   &lt;evil&gt;true&lt;/evil&gt;
-&lt;/lintOptions&gt;</pre></code>
+&lt;/lintOptions&gt;</code></pre>
+        <p>
+          If you feel strongly about lint, you can ask zipper to abort
+          when warnings are encountered:
+<pre><code>&lt;lintFailOnWarning&gt;true&lt;/lintFailOnWarning&gt;</code></pre>
+
         </p>
       </dd>
       
-      <dt id="configuration_js_optimization">JavaScript Optimization</dt>
+      <dt id="configuration_js_optimization">JavaScript optimization</dt>
       <dd>
-        Once lint checking is complete, your JavaScript will be optimized
-        using the <a href="http://code.google.com/closure/compiler/">Closure 
-        Compiler</a>.  You can control the the Closure execution by passing
-        an options string containing any combination of 
-        <a href="http://code.google.com/closure/compiler/docs/overview.html">
-        documented options</a>.  For example, the following will enable 
-        advanced optimizations:
+        <p>
+          Once lint checking is complete, your JavaScript will be optimized
+          using the <a href="http://code.google.com/closure/compiler/">Closure 
+          Compiler</a>.  You can control the the Closure execution by passing
+          an options string containing any combination of 
+          <a href="http://code.google.com/closure/compiler/docs/overview.html">
+          documented options</a>.  For example, the following will enable 
+          advanced optimizations:
+        </p>
 <pre><code>&lt;optimizeOptions&gt;
   --compilation_level ADVANCED_OPTIMIZATIONS
-&lt;/optimizeOptions&gt;</pre></code>
+&lt;/optimizeOptions&gt;</code></pre>
       </dd>
       
-      <dt id="configration_css">CSS Minification</dt>
+      <dt id="configration_css">CSS minification</dt>
       <dd>
-        Zipper will pass your CSS files through YUI Compressor's 
+        zipper will pass your CSS files through YUI Compressor's 
         <a href="http://developer.yahoo.com/yui/compressor/css.html">
-        CSS minifier</a>.  The only option available to customize the 
-        minifier is the minifierLineBreak option, which will force
+        CSS minifier</a>.  The only option available here is the
+        <em>minifyLineBreak</em> option, which will force
         a line break in the output at the given column number:
 <pre><code>&lt;minifyLineBreak&gt;80&lt;/minifyLineBreak&gt;</code></pre>
       </dd>
       
-      <dt id="configration_grouping">Asset Grouping.</dt>
+      <dt id="configration_grouping">asset grouping</dt>
       <dd>
-        Zipper's asset grouping feature allows you to group particular assets
-        together, in a particular order, into a single gzipped resource.
-        JavaScript and CSS groups are configured separately.  Consider the
-        following example:
-
-<pre><code>
-&lt;groupOutputDirectory&gt;static&lt;groupOutputDirectory&gt;
+        <p>
+          zipper's asset grouping feature allows you to group particular assets
+          together, in a particular order, into a single gzipped resource.
+          JavaScript and CSS groups are configured separately.  
+        </p>
+        <p>
+          The following example creates one concatentated JavaScript asset consisting of 
+          the optimized version of prototype.js, followed by the optimized versions of 
+          all other JavaScript files in the project.  This asset will
+          then be gzipped and given a name according the the <em>name</em>
+          option, and saved in a newly created 'static' directory.  The 
+          <em>groupOutputDirectory</em> and 
+          <em>gzip</em> options are optional, and default to <strong> 
+          static</strong> and <strong>true</strong>.
+        </p>
+<pre><code>&lt;groupOutputDirectory&gt;static&lt;groupOutputDirectory&gt;
 &lt;javascriptGroups&gt;
   &lt;javascriptGroup&gt;
     &lt;gzip&gt;true&lt;gzip&gt;
@@ -132,19 +162,10 @@ shortly.</em>
   &lt;javascriptGroup&gt;
 &lt;javascriptGroups&gt;
 </code></pre>
-        <p>
-          This example will create one JavaScript asset group consisting of the
-          concatenation of the optimized version of prototype.js, followed by
-          the optimized versions of all other JavaScript files.  This asset will
-          then be gzipped into a new file named according the the name
-          option, and saved in a newly created 'static' directory.  The 
-          <strong>groupOutputDirectory</strong> and 
-          <strong>gzip</strong> options are optional, and default to <strong> 
-          'static'</strong> and <strong>true</strong> by default.
-        </p>
 
         <p>
           The stylesheet configuration is nearly identical:
+        </p>
 <pre><code>&lt;stylesheetGroups&gt;
   &lt;stylesheetGroup&gt;
     &lt;name&gt;barfoo&lt;name&gt;
@@ -154,7 +175,6 @@ shortly.</em>
   &lt;stylesheetGroup&gt;
 &lt;stylesheetGroups&gt;
 </code></pre>
-        </p>
 
         <p>
           If you choose not to configure any groups, the default behavior
@@ -162,10 +182,8 @@ shortly.</em>
           script-all.js.gz file, and all of your stylesheets into a single
           style-all.css.gz file.
         </p>
-
-
-
       </dd>
-  <body>
+    </dl>
+  </body>
 </html>
 
