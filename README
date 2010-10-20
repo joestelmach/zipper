@@ -1,78 +1,13 @@
-The optimize goal is broken down into the following configurable steps:
-- jslint -
-  First thing's first.  We run jslint on all the javascript files
-  found under the base directory, and print any warnings found
-  You can configure the build process to fail on warnings:
-  
-  <lintFailOnWarning>false</lintFailOnWarning>
-  
-  or to skip the jslint process altogether:
-  
-  <lintSkip>true</lintSkip>
-  
-  If you're project includes framework code (Prototype, JQuery, etc.), 
-  you probably don't want to run those files through the lint program,
-  so you can exclude files from being checked by using the lintExcludes 
-  parameter.  
-  
-  <lintExcludes>
-    <param>**/*prototype*.js</param> 
-  </lintExcludes>
-  
-  You can further control the jslint operation by configuring jslint options:
-  
-  <lintOptions>
-    <eqeqeq>true</eqeqeq>
-    <plusplus>true</plusplus>
-  </lintOptions>
-  
-  The list of available options can be found here: http://www.jslint.com/
-  
-- process js -
-  Next we run the javascript files through the closure compiler,
-  which will minify and optimize the code within, and store the
-  resulting file along side of the original with the -min.js extension.
-  
-- minify css -
-  Now we minify all the css files found under the base directory. Like
-  in the previous step, we store each minified file with a -min.css
-  extenstion along side of the original file.
-  
-- group -
-  Zipper allows you to group your optimized assets into configurable
-  groups of concatenated files, thereby minimizing http requests.
-  
-  <javascriptGroups>
-    <javascriptGroup>
-      <name>common</name>
-      <includes>
-        <include>prototype.js</include> 
-        <include>**/*</include> 
-      </includes>
-    </javascriptGroup>
-  </javascriptGroups>
-  
-  <stylesheetGroups>
-    <stylesheetGroup>
-      <name>barfoo</name>
-      <includes>
-        <include>**/*.css</include>
-      <includes>
-    </stylesheetGroup>
-  </stylesheetGroups>
-  
-- cache bust css -
-  Cache busting can be enabled with the bustCache option:
-  
-  <bustCache>true<bustCache>
-  
-  When enabled, we have two additional steps to take.  First, we append the current
-  timestamp as a paramter to each minified css file and each optimized 
-  javascript file.  Next we need to browse through each minified css file 
-  and look for any url(...) rules, and append the timestamp parameter to 
-  the pathsfound within the parenthesis.
++-++-++-++-++-++-+
+|z||i||p||p||e||r|
++-++-++-++-++-++-+
+ 
+Zipper is a full-featured asset packaging plugin for Maven that provides 
+JavaScript lint checking, Closure Compiler and YUI Compressor support, 
+and CSS/JavaScript concatenation and gzipping.
 
-- gzip 
-  The last step is to gzip the minified css and optimized javascript files.
-  This is generally a good idea so it's turned on by default, but can be 
-  disabled using the <TODO> option
+You can access the full documentation here:
+http://joestelmach.github.com/zipper/
+
+If you're having trouble, let me know:
+https://github.com/joestelmach/zipper/issues

@@ -4,7 +4,96 @@
   <artifactId>zipper</artifactId>
   <version>0.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
-  <name>Asset Packager</name>
+  <name>Zipper</name>
+  <description>
+    Zipper is a full-featured asset packaging plugin for Maven that 
+    provides JavaScript lint lint checking, Closure Compiler and 
+    YUI Compressor support, CSS and JavaScript concatenation, 
+    and up-front gzipping. 
+  </description>
+  
+  <url>http://joestelmach.github.com/zipper/</url>
+  
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>LICENSE</url>
+    </license>
+  </licenses>
+  
+  <developers>
+    <developer>
+      <id>joe</id>
+      <name>Joe Stelmach</name>
+      <email>joestelmach@gmail.com</email>
+      <url>http://joestelmach.com</url>
+      <roles>
+        <role>developer</role>
+      </roles>
+      <timezone>-5</timezone>
+    </developer>
+  </developers>
+  
+  <scm>
+    <connection>scm:git:git@github.com:joestelmach/zipper.git</connection>
+    <url>scm:git:git@github.com:joestelmach/zipper.git</url>
+    <developerConnection>scm:git:git@github.com:joestelmach/zipper.git</developerConnection>  
+  </scm>
+  
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>5</version>
+  </parent>
+  
+  <build>
+    <plugins>
+      <!-- sign artifacts -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <!-- generate javadoc.jar -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+        </configuration>
+      </plugin>
+  
+      <!-- generate sources.jar -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
   
   <dependencies>
     <dependency>
