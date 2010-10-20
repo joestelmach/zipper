@@ -2,9 +2,11 @@
 |z||i||p||p||e||r|
 +-++-++-++-++-++-+
  
-Zipper is a full-featured asset packaging plugin for Maven that provides 
-JavaScript lint checking, Closure Compiler and YUI Compressor support, 
-and CSS/JavaScript concatenation and gzipping.
+zipper is a full-featured asset packaging plugin for Maven that aims to 
+optimize your project's static resources at build time.  Most of the 
+heavy lifting is done with Google's Closure Compiler and Yahoo's YUI 
+compressor, but you'll also find CSS/JavaScript concatenation and 
+gzipping, resource cache busting, and automated lint checking.
 
 You can access the full documentation here:
 http://joestelmach.github.com/zipper/
