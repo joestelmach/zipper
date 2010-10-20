@@ -48,6 +48,15 @@
   
   <build>
     <plugins>
+      <!-- compiler plugin -->
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.5</source>
+          <target>1.5</target>
+        </configuration>
+      </plugin>
+      
       <!-- sign artifacts -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
