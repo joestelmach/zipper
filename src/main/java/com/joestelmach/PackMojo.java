@@ -58,51 +58,66 @@ public class PackMojo extends AbstractMojo {
   /***** Configuration Parameters *****/
   
   /**
+   * causes zipper to skip all JavaScript lint checks
+   * 
    * @parameter default-value="false"
    */
   private boolean lintSkip;
   
   /**
+   * causes zipper to fail the maven build when lint 
+   * warnings are encountered
+   * 
    * @parameter default-value="true"
    */
   private boolean lintFailOnWarning;
   
   /**
+   * a list of file patterns to exclude from lint checking
+   * 
    * @parameter
    */
   private List<String> lintExcludes;
   
   /**
+   * a map of defined jslint options: http://www.jslint.com/
+   * 
    * @parameter
    */
   private Map<String, String>lintOptions;
   
   /**
+   * an options string to pass to the closure compiler
+   * 
    * @parameter default-value=""
    */
   private String optimizeOptions;
   
   /**
+   * the column at which the css minifier will force a line break
+   * in its output
+   * 
    * @parameter default-value=""
    */
   private int minifyLineBreak;
   
   /**
-   * @parameter default-value="false" 
-   */
-  private boolean bustCache;
-  
-  /**
+   * the name of the directory to place resulting asset groups
+   * 
    * @parameter default-value="static" 
    */
   private String groupOutputDirectory;
   
   /**
+   * the list of javascript asset groups to build
+   * 
    * @parameter
    */
   private List<JavascriptGroup> javascriptGroups; 
   
   /**
+   * the list of stylesheet asset groups to build
+   * 
    * @parameter
    */
   private List<StylesheetGroup> stylesheetGroups; 
@@ -140,7 +155,6 @@ public class PackMojo extends AbstractMojo {
     optimizeJs();
     minifyCss();
     group();
-    if(bustCache) bustCache();
   }
   
   /**
@@ -356,14 +370,6 @@ public class PackMojo extends AbstractMojo {
     } finally {
       if(input != null) input.close();
     }
-  }
-  
-  /**
-   * 
-   */
-  private void bustCache() {
-    getLog().info("performing cache busting");
-    
   }
   
   /**
