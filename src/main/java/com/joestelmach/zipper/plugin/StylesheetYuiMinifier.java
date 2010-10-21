@@ -1,4 +1,4 @@
-package com.joestelmach;
+package com.joestelmach.zipper.plugin;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
