@@ -16,8 +16,7 @@ import com.yahoo.platform.yui.compressor.CssCompressor;
  * @author Joe Stelmach
  *
  */
-public class StylesheetYuiMinifier {
-  public StylesheetYuiMinifier() {}
+public class CSSMinifierYUI {
   
   public void minify(String inputFileName, String outputFileName, int lineBreakPosition) throws IOException {
     Reader in = new BufferedReader(new FileReader(new File(inputFileName)));

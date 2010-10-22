@@ -10,8 +10,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
-public class JavascriptClosureOptimizer {
-  public JavascriptClosureOptimizer() {
+public class JSOptimizerClosure {
+  public JSOptimizerClosure() {
     unpackCompiler();
   }
   

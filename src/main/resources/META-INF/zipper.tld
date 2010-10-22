@@ -5,16 +5,14 @@
     xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-jsptaglibrary_2_1.xsd"
     version="2.1">
     
-  <description></description>
-  <display-name></display-name>
   <tlib-version>1.2</tlib-version>
   <short-name>zipper</short-name>
   <uri>http://joestelmach.com/zipper</uri>
 
   <tag>
-    <description>Include the resources for a named asset</description>
     <name>asset</name>
-    <tag-class>com.joestelmach.zipper.AssetTag</tag-class>
+    <description>Include the resources for a named asset</description>
+    <tag-class>com.joestelmach.zipper.tag.AssetTag</tag-class>
     <body-content>empty</body-content>
   </tag>
 </taglib>

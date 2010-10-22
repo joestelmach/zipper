@@ -3,42 +3,25 @@ package com.joestelmach.zipper.tag;
 import java.io.IOException;
 
 import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.PageContext;
-import javax.servlet.jsp.tagext.Tag;
+import javax.servlet.jsp.tagext.SimpleTagSupport;
 
-public class AssetTag implements Tag {
-  private PageContext _pageContext;
-  private Tag _parent;
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 
-  public int doStartTag() throws JspException {
+public class AssetTag extends SimpleTagSupport {
+  
+  private static Configuration _configuration;
+  static {
     try {
-      String environment = System.getProperty("deployed.environment");
-      _pageContext.getOut().print("env: " + environment);
+      _configuration = new PropertiesConfiguration("zipper.properties");
       
-    } catch (IOException e) {
-      throw new JspException("Error:  IOException while writing to client" + e.getMessage());
+    } catch (ConfigurationException e) {
+      e.printStackTrace();
     }
-    
-    return SKIP_BODY;
   }
   
-  public int doEndTag() throws JspException {
-    return SKIP_PAGE;
-  }
-
-  public Tag getParent() {
-    return _parent;
-  }
-
-  public void release() {
-    
-  }
-
-  public void setPageContext(PageContext pageContext) {
-    _pageContext = pageContext;
-  }
-
-  public void setParent(Tag parent) {
-    _parent = parent;
+  public void doTag() throws JspException, IOException {
+    getJspContext().getOut().write("Hello, world.");
   }
 }

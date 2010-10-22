@@ -11,9 +11,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +21,10 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.ConfigurationUtils;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -42,10 +46,16 @@ import com.googlecode.jslint4java.Option;
  */
 public class PackMojo extends AbstractMojo {
   
-  private List<String> _javascriptFileNames;
+  private List<String> _jsFileNames;
   private List<String> _cssFileNames;
-  private JavascriptClosureOptimizer _jsOptimizer;
-  private StylesheetYuiMinifier _cssMinifier;
+  private JSOptimizerClosure _jsOptimizer;
+  private CSSMinifierYUI _cssMinifier;
+  private Configuration _configuration;
+  
+  private static final String JS_EXTENSION = ".js";
+  private static final String CSS_EXTENSION = ".css";
+  private static final String JS_MIN_EXTENSION = "-min.js";
+  private static final String CSS_MIN_EXTENSION = "-min.css";
   
   /**
    * The maven project.
@@ -55,106 +65,34 @@ public class PackMojo extends AbstractMojo {
    */
   private MavenProject _project;
   
-  /***** Configuration Parameters *****/
-  
-  /**
-   * causes zipper to skip all JavaScript lint checks
-   * 
-   * @parameter default-value="false"
-   */
-  private boolean lintSkip;
-  
-  /**
-   * causes zipper to fail the maven build when lint 
-   * warnings are encountered
-   * 
-   * @parameter default-value="true"
-   */
-  private boolean lintFailOnWarning;
-  
-  /**
-   * a list of file patterns to exclude from lint checking
-   * 
-   * @parameter
-   */
-  private List<String> lintExcludes;
-  
-  /**
-   * a map of defined jslint options: http://www.jslint.com/
-   * 
-   * @parameter
-   */
-  private Map<String, String>lintOptions;
-  
-  /**
-   * an options string to pass to the closure compiler
-   * 
-   * @parameter default-value=""
-   */
-  private String optimizeOptions;
-  
-  /**
-   * the column at which the css minifier will force a line break
-   * in its output
-   * 
-   * @parameter default-value=""
-   */
-  private int minifyLineBreak;
-  
-  /**
-   * the name of the directory to place resulting asset groups
-   * 
-   * @parameter default-value="static" 
-   */
-  private String groupOutputDirectory;
-  
-  /**
-   * the list of javascript asset groups to build
-   * 
-   * @parameter
-   */
-  private List<JavascriptGroup> javascriptGroups; 
-  
-  /**
-   * the list of stylesheet asset groups to build
-   * 
-   * @parameter
-   */
-  private List<StylesheetGroup> stylesheetGroups; 
-  
   /**
    * 
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
-    // first we find the files we'll be working with
-    _javascriptFileNames = findFileNames("**/*.js");
-    _cssFileNames = findFileNames("**/*.css");
-    
-    // if no javascript groups have been configured, we create the default group
-    // consisting of all the javascript files
-    if(javascriptGroups == null) {
-      JavascriptGroup group = new JavascriptGroup();
-      group.setName("script-all");
-      group.setIncludes(Arrays.asList(new String[]{"**/*.js"}));
-      group.setGzip(true);
-      javascriptGroups = new ArrayList<JavascriptGroup>();
-      javascriptGroups.add(group);
-    }
-    
-    // same goes for the stylesheets
-    if(stylesheetGroups == null) {
-      StylesheetGroup group = new StylesheetGroup();
-      group.setName("style-all");
-      group.setIncludes(Arrays.asList(new String[]{"**/*.css"}));
-      group.setGzip(true);
-      stylesheetGroups = new ArrayList<StylesheetGroup>();
-      stylesheetGroups.add(group);
-    }
-    
-    if(!lintSkip) lintCheckJs();
+    configure();
+    lintCheckJs();
     optimizeJs();
     minifyCss();
     group();
+  }
+  
+  /**
+   * @throws MojoFailureException 
+   * 
+   */
+  private void configure() throws MojoFailureException {
+    try {
+      _configuration = new PropertiesConfiguration("zipper.properties");
+      
+    } catch (ConfigurationException e) {
+      throw new MojoFailureException("Could not find zipper.properties in your classpath");
+    }
+    
+    ConfigurationUtils.dump(_configuration, System.out);
+    
+    // find all the files we'll be working with
+    _jsFileNames = findFileNames("**/*.." + JS_EXTENSION);
+    _cssFileNames = findFileNames("**/*" + CSS_EXTENSION);
   }
   
   /**
@@ -163,15 +101,18 @@ public class PackMojo extends AbstractMojo {
    * @throws MojoExecutionException
    */
   public void lintCheckJs() throws MojoFailureException, MojoExecutionException {
+    boolean lintSkip = _configuration.getBoolean(OptionKey.LINT_SKIP.getValue(), true);
+    if(lintSkip) return;
+    
     // find the list of excluded lint files
-    List<String> excludedFiles = new ArrayList<String>();
-    if(lintExcludes != null) {
-      for(String exclude:lintExcludes) {
-        excludedFiles.addAll(findFileNames(exclude));
-      }
+    @SuppressWarnings("unchecked")
+    List<String> excludedFiles = (List<String>) 
+      _configuration.getList(OptionKey.LINT_EXCLUDES.getValue());
+    for(String exclude:excludedFiles) {
+      excludedFiles.addAll(findFileNames(exclude));
     }
     
-    for(String fileName:_javascriptFileNames) {
+    for(String fileName:_jsFileNames) {
       if(excludedFiles.contains(fileName)) continue;
       
       getLog().info("lint checking " + fileName.substring(fileName.lastIndexOf('/') + 1));
@@ -181,15 +122,14 @@ public class PackMojo extends AbstractMojo {
           
           // add configured lint options
           JSLint lint = new JSLintBuilder().fromDefault();
-          if(lintOptions != null) {
-            for(Entry<String,String>entry:lintOptions.entrySet()) {
-              try {
-                Option option = Option.valueOf(entry.getKey().toUpperCase());
-                lint.addOption(option, entry.getValue());
-                getLog().info("added lint option " + entry.getKey() + ": " + entry.getValue());
-              } catch(Exception e) {
-                getLog().warn("invalid lint option: " + entry.getKey());
-              }
+            for(Entry<String,String>entry:getLintOptions().entrySet()) {
+            try {
+              Option option = Option.valueOf(entry.getKey().toUpperCase());
+              lint.addOption(option, entry.getValue());
+              getLog().info("added lint option " + entry.getKey() + ": " + entry.getValue());
+              
+            } catch(Exception e) {
+              getLog().warn("invalid lint option: " + entry.getKey());
             }
           }
           
@@ -226,14 +166,16 @@ public class PackMojo extends AbstractMojo {
    */
   private void optimizeJs() throws MojoFailureException {
     if(_jsOptimizer == null) {
-      _jsOptimizer = new JavascriptClosureOptimizer();
+      _jsOptimizer = new JSOptimizerClosure();
     }
     
     try {
-      for(String fileName:_javascriptFileNames) {
+      for(String fileName:_jsFileNames) {
         getLog().info("optimizing " + fileName.substring(fileName.lastIndexOf('/') + 1));
+        String optimizeOptions = _configuration.getString(OptionKey.JS_OPTIMIZE_OPTIONS.getValue());
         _jsOptimizer.optimize(fileName, getOptimizedName(fileName), optimizeOptions);
       }
+      
     } catch (Exception e) {
       throw new MojoFailureException(e.getMessage());
     }
@@ -244,12 +186,13 @@ public class PackMojo extends AbstractMojo {
    */
   private void minifyCss() throws MojoFailureException {
     if(_cssMinifier == null) {
-      _cssMinifier = new StylesheetYuiMinifier();
+      _cssMinifier = new CSSMinifierYUI();
     }
     try {
       for(String fileName:_cssFileNames) {
         getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
-        _cssMinifier.minify(fileName, getOptimizedName(fileName), minifyLineBreak);
+        int lineBreak = _configuration.getInt(OptionKey.CSS_LINE_BREAK.getValue());
+        _cssMinifier.minify(fileName, getOptimizedName(fileName), lineBreak);
       }
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
@@ -260,12 +203,17 @@ public class PackMojo extends AbstractMojo {
    * 
    */
   private void group() throws MojoExecutionException {
-    File outputDirectory = new File(_project.getBuild().getOutputDirectory() + "/" + groupOutputDirectory);
+    String outputPath = _configuration.getString(OptionKey.OUTPUT_PATH.getValue());
+    File outputDirectory = new File(_project.getBuild().getOutputDirectory() + "/" + outputPath);
     if(!outputDirectory.exists()) {
       outputDirectory.mkdirs();
     }
-    processGroups(javascriptGroups, outputDirectory.getAbsolutePath(), ".js");
-    processGroups(stylesheetGroups, outputDirectory.getAbsolutePath(), ".css");
+    
+    processGroups(getGroups(OptionKey.JS_ASSET_PREFIX), 
+        outputDirectory.getAbsolutePath(), JS_EXTENSION);
+    
+    processGroups(getGroups(OptionKey.CSS_ASSET_PREFIX), 
+        outputDirectory.getAbsolutePath(), CSS_EXTENSION);
   }
   
   /**
@@ -276,23 +224,18 @@ public class PackMojo extends AbstractMojo {
    * @param groups
    * @throws MojoExecutionException 
    */
-  private void processGroups(List<? extends AbstractGroup> groups, 
+  private void processGroups(List<? extends AssetGroup> groups, 
       String outputDirectory, String outputSuffix) throws MojoExecutionException {
     
     // for each group, we'll create a unique list of files that should
     // be included, and attempt to combine them with the configured name
-    for(AbstractGroup group:groups) {
+    for(AssetGroup group:groups) {
       Set<String> includedOptimizedFiles = new LinkedHashSet<String>();
       getLog().info("building asset " + group.getName());
       
-      Set<String> excludedFiles = new HashSet<String>();
-      for(String exclude:group.getExcludes()) {
-        excludedFiles.addAll(findFileNames(getOptimizedName(exclude)));
-      }
-        
       for(String include:group.getIncludes()) {
         for(String fileName:findFileNames(include)) {
-          if(!excludedFiles.contains(include) && !fileName.endsWith("-min.js") && !fileName.endsWith("-min.css")) {
+          if(!fileName.endsWith(JS_MIN_EXTENSION) && !fileName.endsWith(CSS_MIN_EXTENSION)) {
             includedOptimizedFiles.add(getOptimizedName(fileName));
           }
         }
@@ -376,6 +319,8 @@ public class PackMojo extends AbstractMojo {
    * 
    */
   private void processLintFailure(String message) throws MojoFailureException, MojoExecutionException {
+    boolean lintFailOnWarning = 
+      _configuration.getBoolean(OptionKey.LINT_FAIL_ON_WARNING.getValue(), false);
     if(lintFailOnWarning) {
       throw new MojoFailureException(message);
     }
@@ -408,8 +353,40 @@ public class PackMojo extends AbstractMojo {
    * @return
    */
   private String getOptimizedName(String originalName) {
-    String suffix = originalName.endsWith(".css") ? "-min.css" : "-min.js";
+    String suffix = originalName.endsWith(CSS_EXTENSION) ? CSS_MIN_EXTENSION : JS_MIN_EXTENSION;
     int suffixLength = suffix.length() - 4;
     return originalName.substring(0, originalName.length() - suffixLength) + suffix;
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  private Map<String, String> getLintOptions() {
+    Map<String, String> map = new HashMap<String, String>();
+    @SuppressWarnings("unchecked")
+    Iterator<String> iter = _configuration.getKeys(OptionKey.LINT_OPTION_PREFIX.getValue());
+    while(iter.hasNext()) {
+      String key = iter.next();
+      map.put(key, _configuration.getString(key));
+    }
+    
+    return map;
+  }
+  
+  
+  @SuppressWarnings("unchecked")
+  private List<AssetGroup>getGroups(OptionKey prefix) {
+    Iterator<String> iter = (Iterator<String>) _configuration.getKeys(prefix.getValue());
+    List<AssetGroup>groups = new ArrayList<AssetGroup>();
+    while(iter.hasNext()) {
+      String key = iter.next();
+      AssetGroup group = new AssetGroup();
+      group.setName(key.substring(prefix.getValue().length()));
+      group.setIncludes(_configuration.getList(key));
+      group.setGzip(true);
+      groups.add(group);
+    }
+    return groups;
   }
 }

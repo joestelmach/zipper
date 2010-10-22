@@ -3,26 +3,10 @@ package com.joestelmach.zipper.plugin;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractGroup {
-  /**
-   * @property
-   */
+public class AssetGroup {
   private String name;
-  
-  /**
-   * @property
-   */
-  protected List<String> includes;
-  
-  /**
-   * @property
-   */
-  protected List<String> excludes;
-  
-  /**
-   * @property
-   */
-  protected boolean gzip;
+  private List<String> includes;
+  private boolean gzip;
 
   public String getName() {
     return name;
@@ -38,13 +22,6 @@ public abstract class AbstractGroup {
     this.includes = includes;
   }
 
-  public List<String> getExcludes() {
-    return excludes == null ? new ArrayList<String>() : excludes;
-  }
-  public void setExcludes(List<String> excludes) {
-    this.excludes = excludes;
-  }
-  
   public boolean getGzip() {
     return gzip;
   }
