@@ -26,7 +26,6 @@ public class JSOptimizerClosure {
     options = options != null ? options : "";
     String command = "java -jar /tmp/compiler.jar " + options + " --js " + inputFileName + 
       " --js_output_file " + outputFileName;
-    System.out.println(command);
     Process proc = Runtime.getRuntime().exec(command);
     
     // print any errors to the console
@@ -52,7 +51,7 @@ public class JSOptimizerClosure {
    */
   private void unpackCompiler() {
     // write the closure compiler to the build dir
-    InputStream in = new BufferedInputStream(PackMojo.class.getResourceAsStream("/compiler.jar"));
+    InputStream in = new BufferedInputStream(ZipperMojo.class.getResourceAsStream("/compiler.jar"));
     try {
       File file = new File("/tmp/compiler.jar");
       //file.deleteOnExit();

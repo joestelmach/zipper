@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -40,11 +41,11 @@ import com.googlecode.jslint4java.Option;
 /**
  * @author Joe Stelmach
  * 
- * @goal pack 
+ * @goal zipper 
  * @execute phase="process-resources"
  * @phase process-resources
  */
-public class PackMojo extends AbstractMojo {
+public class ZipperMojo extends AbstractMojo {
   
   private List<String> _jsFileNames;
   private List<String> _cssFileNames;
@@ -56,6 +57,7 @@ public class PackMojo extends AbstractMojo {
   private static final String CSS_EXTENSION = ".css";
   private static final String JS_MIN_EXTENSION = "-min.js";
   private static final String CSS_MIN_EXTENSION = "-min.css";
+  private static final String DEFAULT_OUTPUT_DIR = "assets";
   
   /**
    * The maven project.
@@ -70,9 +72,9 @@ public class PackMojo extends AbstractMojo {
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
     configure();
-    lintCheckJs();
-    optimizeJs();
-    minifyCss();
+    jsLintCheck();
+    jsOptimize();
+    cssMinify();
     group();
   }
   
@@ -81,18 +83,23 @@ public class PackMojo extends AbstractMojo {
    * 
    */
   private void configure() throws MojoFailureException {
+    List<String> paths = findFileNames("**/zipper.properties", null, _project.getBasedir().getAbsolutePath());
+    if(paths.size() == 0) {
+      throw new MojoFailureException("Could not find zipper.properties in your classpath");
+    }
+    
     try {
-      _configuration = new PropertiesConfiguration("zipper.properties");
+      String path = paths.get(0);
+      getLog().info("zipper.properties found: " + path);
+      _configuration = new PropertiesConfiguration(paths.get(0));
       
     } catch (ConfigurationException e) {
       throw new MojoFailureException("Could not find zipper.properties in your classpath");
     }
     
-    ConfigurationUtils.dump(_configuration, System.out);
-    
     // find all the files we'll be working with
-    _jsFileNames = findFileNames("**/*.." + JS_EXTENSION);
-    _cssFileNames = findFileNames("**/*" + CSS_EXTENSION);
+    _jsFileNames = findFileNames("**/*" + JS_EXTENSION, getOutputDir() + "/**", null);
+    _cssFileNames = findFileNames("**/*" + CSS_EXTENSION, getOutputDir() + "/**", null);
   }
   
   /**
@@ -100,16 +107,18 @@ public class PackMojo extends AbstractMojo {
    * @throws MojoFailureException
    * @throws MojoExecutionException
    */
-  public void lintCheckJs() throws MojoFailureException, MojoExecutionException {
+  public void jsLintCheck() throws MojoFailureException, MojoExecutionException {
     boolean lintSkip = _configuration.getBoolean(OptionKey.LINT_SKIP.getValue(), true);
     if(lintSkip) return;
     
     // find the list of excluded lint files
     @SuppressWarnings("unchecked")
-    List<String> excludedFiles = (List<String>) 
-      _configuration.getList(OptionKey.LINT_EXCLUDES.getValue());
-    for(String exclude:excludedFiles) {
-      excludedFiles.addAll(findFileNames(exclude));
+    List<String> excludedPatterns = _configuration.getList(OptionKey.LINT_EXCLUDES.getValue());
+    excludedPatterns.add("**/*" + JS_MIN_EXTENSION);
+    List<String> excludedFiles = new ArrayList<String>();
+    
+    for(String pattern:excludedPatterns) {
+      excludedFiles.addAll(findFileNames(pattern, null, null));
     }
     
     for(String fileName:_jsFileNames) {
@@ -164,16 +173,18 @@ public class PackMojo extends AbstractMojo {
    * 
    * @throws MojoFailureException
    */
-  private void optimizeJs() throws MojoFailureException {
+  private void jsOptimize() throws MojoFailureException {
     if(_jsOptimizer == null) {
       _jsOptimizer = new JSOptimizerClosure();
     }
     
     try {
       for(String fileName:_jsFileNames) {
-        getLog().info("optimizing " + fileName.substring(fileName.lastIndexOf('/') + 1));
-        String optimizeOptions = _configuration.getString(OptionKey.JS_OPTIMIZE_OPTIONS.getValue());
-        _jsOptimizer.optimize(fileName, getOptimizedName(fileName), optimizeOptions);
+        if(!fileName.endsWith(JS_MIN_EXTENSION)) {
+          getLog().info("optimizing " + fileName.substring(fileName.lastIndexOf('/') + 1));
+          String optimizeOptions = _configuration.getString(OptionKey.JS_OPTIMIZE_OPTIONS.getValue());
+          _jsOptimizer.optimize(fileName, getOptimizedName(fileName), optimizeOptions);
+        }
       }
       
     } catch (Exception e) {
@@ -184,15 +195,17 @@ public class PackMojo extends AbstractMojo {
   /**
    * 
    */
-  private void minifyCss() throws MojoFailureException {
+  private void cssMinify() throws MojoFailureException {
     if(_cssMinifier == null) {
       _cssMinifier = new CSSMinifierYUI();
     }
     try {
       for(String fileName:_cssFileNames) {
-        getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
-        int lineBreak = _configuration.getInt(OptionKey.CSS_LINE_BREAK.getValue());
-        _cssMinifier.minify(fileName, getOptimizedName(fileName), lineBreak);
+        if(!fileName.endsWith(CSS_MIN_EXTENSION)) {
+          getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
+          int lineBreak = _configuration.getInt(OptionKey.CSS_LINE_BREAK.getValue());
+          _cssMinifier.minify(fileName, getOptimizedName(fileName), lineBreak);
+        }
       }
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
@@ -203,8 +216,9 @@ public class PackMojo extends AbstractMojo {
    * 
    */
   private void group() throws MojoExecutionException {
-    String outputPath = _configuration.getString(OptionKey.OUTPUT_PATH.getValue());
-    File outputDirectory = new File(_project.getBuild().getOutputDirectory() + "/" + outputPath);
+    String outputPath = _project.getBuild().getOutputDirectory() + "/" + getOutputDir();
+    
+    File outputDirectory = new File(outputPath);
     if(!outputDirectory.exists()) {
       outputDirectory.mkdirs();
     }
@@ -231,10 +245,10 @@ public class PackMojo extends AbstractMojo {
     // be included, and attempt to combine them with the configured name
     for(AssetGroup group:groups) {
       Set<String> includedOptimizedFiles = new LinkedHashSet<String>();
-      getLog().info("building asset " + group.getName());
+      getLog().info("building " + outputSuffix + " asset " + group.getName());
       
       for(String include:group.getIncludes()) {
-        for(String fileName:findFileNames(include)) {
+        for(String fileName:findFileNames(include, getOutputDir() + "/**", null)) {
           if(!fileName.endsWith(JS_MIN_EXTENSION) && !fileName.endsWith(CSS_MIN_EXTENSION)) {
             includedOptimizedFiles.add(getOptimizedName(fileName));
           }
@@ -258,15 +272,21 @@ public class PackMojo extends AbstractMojo {
   private void combineAssets(Collection<String> assets, String outputFileName, boolean gzip) 
       throws MojoExecutionException {
     
-    if(gzip) outputFileName += ".gz";
-    
     File outputFile = new File(outputFileName);
+    File gzipOutputFile = new File(outputFileName + ".gz");
+    
     OutputStream output = null;
+    GZIPOutputStream gzipOutput = null;
     boolean success = true;
     try {
       if(!outputFile.exists()) outputFile.createNewFile();
       output = new BufferedOutputStream(new FileOutputStream(outputFile));
-      if(gzip) output = new GZIPOutputStream(output);
+      
+      if(gzip) {
+        if(!gzipOutputFile.exists()) gzipOutputFile.createNewFile();
+        gzipOutput = new GZIPOutputStream(new BufferedOutputStream(
+            new FileOutputStream(gzipOutputFile)));
+      }
       
       for(String asset:assets) {
         File file = new File(asset);
@@ -279,6 +299,7 @@ public class PackMojo extends AbstractMojo {
         else {
           getLog().info("adding file: " + asset);
           writeAssetToStream(asset, output);
+          writeAssetToStream(asset, gzipOutput);
         }
       }
         
@@ -289,7 +310,11 @@ public class PackMojo extends AbstractMojo {
     } finally {
       try {
         if(output != null) output.close();
-        if(!success) outputFile.delete();
+        if(gzipOutput != null) gzipOutput.close();
+        if(!success) {
+          outputFile.delete();
+          gzipOutputFile.delete();
+        }
         
       } catch (IOException e) {
         getLog().error("couldn't close writer", e);
@@ -328,15 +353,17 @@ public class PackMojo extends AbstractMojo {
   
   /**
    * 
-   * @param expression
+   * @param include
    * @return
    */
-  private List<String> findFileNames(String expression) {
-    File baseDir = new File(_project.getBuild().getOutputDirectory());
+  private List<String> findFileNames(String include, String exclude, String basePath) {
+    basePath =  basePath != null ? basePath : _project.getBuild().getOutputDirectory();
+    File baseDir = new File(basePath);
     
     DirectoryScanner scanner = new DirectoryScanner();
     scanner.setBasedir(baseDir);
-    scanner.setIncludes(new String[]{expression});
+    scanner.setIncludes(new String[]{include});
+    if(exclude != null) scanner.setExcludes(new String[]{exclude});
     scanner.addDefaultExcludes();
     scanner.scan();
     
@@ -364,11 +391,13 @@ public class PackMojo extends AbstractMojo {
    */
   private Map<String, String> getLintOptions() {
     Map<String, String> map = new HashMap<String, String>();
+    String prefix = OptionKey.LINT_OPTION_PREFIX.getValue();
+    
     @SuppressWarnings("unchecked")
-    Iterator<String> iter = _configuration.getKeys(OptionKey.LINT_OPTION_PREFIX.getValue());
+    Iterator<String> iter = _configuration.getKeys(prefix);
     while(iter.hasNext()) {
       String key = iter.next();
-      map.put(key, _configuration.getString(key));
+      map.put(key.substring(prefix.length() + 1), _configuration.getString(key));
     }
     
     return map;
@@ -379,14 +408,40 @@ public class PackMojo extends AbstractMojo {
   private List<AssetGroup>getGroups(OptionKey prefix) {
     Iterator<String> iter = (Iterator<String>) _configuration.getKeys(prefix.getValue());
     List<AssetGroup>groups = new ArrayList<AssetGroup>();
-    while(iter.hasNext()) {
-      String key = iter.next();
+    String defaultAssetName = prefix.equals(OptionKey.JS_ASSET_PREFIX) ? "script" : "style";
+    
+    // if no groups were given for this asset prefix, we create a default group
+    // consisting of all files of the prefix's type with an asset name of 'all'
+    if(!iter.hasNext()) {
       AssetGroup group = new AssetGroup();
-      group.setName(key.substring(prefix.getValue().length()));
-      group.setIncludes(_configuration.getList(key));
-      group.setGzip(true);
+      group.setName(defaultAssetName);
+      String includes = prefix.equals(OptionKey.JS_ASSET_PREFIX) ? "**/*.js" : "**/*.css";
+      group.setIncludes(Arrays.asList(new String[]{includes}));
+      group.setGzip(_configuration.getBoolean(OptionKey.GZIP.getValue(), true));
       groups.add(group);
     }
+    else {
+      while(iter.hasNext()) {
+        String key = iter.next();
+        AssetGroup group = new AssetGroup();
+        String name = defaultAssetName;
+        if(key.length() > prefix.getValue().length()) {
+          name = key.substring(prefix.getValue().length() + 1);
+        }
+        group.setName(name);
+        group.setIncludes(_configuration.getList(key));
+        group.setGzip(_configuration.getBoolean(OptionKey.GZIP.getValue(), true));
+        groups.add(group);
+      }
+    }
     return groups;
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  private String getOutputDir() {
+    return _configuration.getString(OptionKey.OUTPUT_PATH.getValue(), DEFAULT_OUTPUT_DIR);
   }
 }
