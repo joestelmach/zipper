@@ -23,9 +23,15 @@ public class JSOptimizerClosure {
    * @throws InterruptedException
    */
   public void optimize(String inputFileName, String outputFileName, String options) throws IOException, InterruptedException {
+    // ensure our output dir exists
+    String outDir = outputFileName.substring(0, outputFileName.lastIndexOf('/'));
+    System.out.println(outDir);
+    new File(outDir).mkdirs();
+    
     options = options != null ? options : "";
     String command = "java -jar /tmp/compiler.jar " + options + " --js " + inputFileName + 
       " --js_output_file " + outputFileName;
+    System.out.println(command);
     Process proc = Runtime.getRuntime().exec(command);
     
     // print any errors to the console

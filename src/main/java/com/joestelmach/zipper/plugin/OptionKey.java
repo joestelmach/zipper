@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum OptionKey {
+  WEB_ROOT("webroot"),
   LINT_SKIP("lint.skip"),
   LINT_EXCLUDES("lint.exclude"),
   LINT_OPTION_PREFIX("lint.option"),

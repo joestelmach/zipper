@@ -41,7 +41,6 @@ import com.googlecode.jslint4java.Option;
  * @author Joe Stelmach
  * 
  * @goal zipper 
- * @execute phase="process-resources"
  * @phase process-resources
  */
 public class ZipperMojo extends AbstractMojo {
@@ -56,9 +55,8 @@ public class ZipperMojo extends AbstractMojo {
   private static final String PROP_FILE_NAME = "zipper.properties";
   private static final String JS_EXTENSION = ".js";
   private static final String CSS_EXTENSION = ".css";
-  private static final String JS_MIN_EXTENSION = "-min.js";
-  private static final String CSS_MIN_EXTENSION = "-min.css";
   private static final String DEFAULT_OUTPUT_DIR = "assets";
+  private static final String WORK_DIR = "zipper";
   
   /**
    * The maven project.
@@ -97,15 +95,19 @@ public class ZipperMojo extends AbstractMojo {
       _configuration = new PropertiesConfiguration(paths.get(0));
       
     } catch (ConfigurationException e) {
-      throw new MojoFailureException("Could not find your " + PROP_FILE_NAME +
-      		" file.  Please place it in src/main/resources");
+      throw new MojoFailureException("Could not load your " + PROP_FILE_NAME + " file.");
     }
     
-    // find all the files we'll be working with
-    _jsSourceFileNames = findFileNames("**/*" + JS_EXTENSION, null, _project.getBasedir().getAbsolutePath());
-    _cssSourceFileNames = findFileNames("**/*" + CSS_EXTENSION, null, _project.getBasedir().getAbsolutePath());
+    // create our working dir
+    File workDir = new File(getWorkDirPath());
+    if(workDir.exists()) workDir.delete();
+    workDir.mkdirs();
+    
+    // find all the files we'll be working with inside the configured
+    // web root (relative to the project's base dir)
+    _jsSourceFileNames = findFileNames("**/*" + JS_EXTENSION, null, getWebrootPath());
+    _cssSourceFileNames = findFileNames("**/*" + CSS_EXTENSION, null, getWebrootPath());
   }
-  
   /**
    * 
    * @throws MojoFailureException
@@ -118,7 +120,6 @@ public class ZipperMojo extends AbstractMojo {
     // find the list of excluded lint files
     @SuppressWarnings("unchecked")
     List<String> excludedPatterns = _configuration.getList(OptionKey.LINT_EXCLUDES.getValue());
-    excludedPatterns.add("**/*" + JS_MIN_EXTENSION);
     List<String> excludedFiles = new ArrayList<String>();
     
     for(String pattern:excludedPatterns) {
@@ -182,13 +183,12 @@ public class ZipperMojo extends AbstractMojo {
       _jsOptimizer = new JSOptimizerClosure();
     }
     
+    // optimize each file from {webroot}/foo/bar.js to {outputdir}/foo/bar.js
     try {
       for(String fileName:_jsSourceFileNames) {
-        if(!fileName.endsWith(JS_MIN_EXTENSION)) {
-          getLog().info("optimizing " + fileName.substring(fileName.lastIndexOf('/') + 1));
-          String optimizeOptions = _configuration.getString(OptionKey.JS_OPTIMIZE_OPTIONS.getValue(), "");
-          _jsOptimizer.optimize(fileName, getOptimizedName(fileName), optimizeOptions);
-        }
+        getLog().info("optimizing " + fileName.substring(fileName.lastIndexOf('/') + 1));
+        String optimizeOptions = _configuration.getString(OptionKey.JS_OPTIMIZE_OPTIONS.getValue(), "");
+        _jsOptimizer.optimize(fileName, getOutputPathFromSourcePath(fileName), optimizeOptions);
       }
       
     } catch (Exception e) {
@@ -205,11 +205,9 @@ public class ZipperMojo extends AbstractMojo {
     }
     try {
       for(String fileName:_cssSourceFileNames) {
-        if(!fileName.endsWith(CSS_MIN_EXTENSION)) {
-          getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
-          int lineBreak = _configuration.getInt(OptionKey.CSS_LINE_BREAK.getValue(), -1);
-          _cssMinifier.minify(fileName, getOptimizedName(fileName), lineBreak);
-        }
+        getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
+        int lineBreak = _configuration.getInt(OptionKey.CSS_LINE_BREAK.getValue(), -1);
+        _cssMinifier.minify(fileName, getOutputPathFromSourcePath(fileName), lineBreak);
       }
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
@@ -252,10 +250,8 @@ public class ZipperMojo extends AbstractMojo {
       getLog().info("building " + outputSuffix + " asset " + group.getName());
       
       for(String include:group.getIncludes()) {
-        for(String fileName:findFileNames(include, getOutputDir() + "/**", null)) {
-          if(!fileName.endsWith(JS_MIN_EXTENSION) && !fileName.endsWith(CSS_MIN_EXTENSION)) {
-            includedOptimizedFiles.add(getOptimizedName(fileName));
-          }
+        for(String fileName:findFileNames(include, null, getWorkDirPath())) {
+          includedOptimizedFiles.add(fileName);
         }
       }
       
@@ -381,17 +377,6 @@ public class ZipperMojo extends AbstractMojo {
   
   /**
    * 
-   * @param originalName
-   * @return
-   */
-  private String getOptimizedName(String originalName) {
-    String suffix = originalName.endsWith(CSS_EXTENSION) ? CSS_MIN_EXTENSION : JS_MIN_EXTENSION;
-    int suffixLength = suffix.length() - 4;
-    return originalName.substring(0, originalName.length() - suffixLength) + suffix;
-  }
-  
-  /**
-   * 
    * @return
    */
   private Map<String, String> getLintOptions() {
@@ -482,5 +467,33 @@ public class ZipperMojo extends AbstractMojo {
         getLog().error("could not close stream", e);
       }
     }
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  private String getWebrootPath() {
+    String basePath = _project.getBasedir().getAbsolutePath();
+    String webroot = _configuration.getString(OptionKey.WEB_ROOT.getValue(), "src/main/webapp");
+    return basePath + (webroot.startsWith("/") ? "" : "/") + webroot;
+  }
+  
+  /**
+   * 
+   * @return the absolute path the directory used to store optimized
+   * files while building
+   */
+  private String getWorkDirPath() {
+    return _project.getBuild().getOutputDirectory() + "/" + WORK_DIR;
+  }
+  
+  /**
+   * 
+   * @param sourcePath
+   * @return
+   */
+  private String getOutputPathFromSourcePath(String sourcePath) {
+    return getWorkDirPath() + "/" + sourcePath.substring(getWebrootPath().length() + 1);
   }
 }
