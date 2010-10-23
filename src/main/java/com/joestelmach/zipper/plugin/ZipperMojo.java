@@ -70,12 +70,14 @@ public class ZipperMojo extends AbstractMojo {
    * 
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
+    createWorkDir();
     configure();
     jsLintCheck();
     jsOptimize();
     cssMinify();
     group();
     writeManifest();
+    deleteWorkDir();
   }
   
   /**
@@ -97,11 +99,6 @@ public class ZipperMojo extends AbstractMojo {
     } catch (ConfigurationException e) {
       throw new MojoFailureException("Could not load your " + PROP_FILE_NAME + " file.");
     }
-    
-    // create our working dir
-    File workDir = new File(getWorkDirPath());
-    if(workDir.exists()) workDir.delete();
-    workDir.mkdirs();
     
     // find all the files we'll be working with inside the configured
     // web root (relative to the project's base dir)
@@ -258,7 +255,7 @@ public class ZipperMojo extends AbstractMojo {
       String outputFileName = outputDirectory + "/" + group.getName() + outputSuffix;
       if(includedOptimizedFiles.size() > 0) {
         combineAssets(includedOptimizedFiles, outputFileName, group.getGzip());
-        _finalManifest.put("zipper.asset" + outputSuffix + "." + group.getName(), includedOptimizedFiles);
+        _finalManifest.put("zipper" + outputSuffix + ".asset." + group.getName(), includedOptimizedFiles);
       }
     }
   }
@@ -450,9 +447,7 @@ public class ZipperMojo extends AbstractMojo {
       for(Entry<String,List<String>> entry:_finalManifest.entrySet()) {
         for(String file:entry.getValue()) {
           String pathInBuildDir = file.substring(_project.getBuild().getOutputDirectory().length() + 1);
-          
-          
-          out.write(entry.getKey() + " = " + pathInBuildDir + "\n");
+          out.write(entry.getKey() + " = " + pathInBuildDir.substring(WORK_DIR.length()) + "\n");
         }
       }
       
@@ -481,6 +476,21 @@ public class ZipperMojo extends AbstractMojo {
   
   /**
    * 
+   */
+  private void createWorkDir() {
+    deleteWorkDir();
+    new File(getWorkDirPath()).mkdirs();
+  }
+  
+  /**
+   * 
+   */
+  private void deleteWorkDir() {
+    deleteDir(new File(getWorkDirPath()));
+  }
+  
+  /**
+   * 
    * @return the absolute path the directory used to store optimized
    * files while building
    */
@@ -495,5 +505,20 @@ public class ZipperMojo extends AbstractMojo {
    */
   private String getOutputPathFromSourcePath(String sourcePath) {
     return getWorkDirPath() + "/" + sourcePath.substring(getWebrootPath().length() + 1);
+  }
+  
+  /**
+   * 
+   * @param dir
+   */
+  public boolean deleteDir(File dir) {
+    if(dir.isDirectory()) {
+      for (String fileName:dir.list()) {
+        boolean success = deleteDir(new File(dir, fileName));
+        if(!success)  return false;
+      }
+    }
+    // The directory is now empty so delete it
+    return dir.delete();
   }
 }
