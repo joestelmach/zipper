@@ -3,11 +3,9 @@ package com.joestelmach.zipper.plugin;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -50,7 +48,6 @@ public class ZipperMojo extends AbstractMojo {
   private JSOptimizerClosure _jsOptimizer;
   private CSSMinifierYUI _cssMinifier;
   private Configuration _configuration;
-  private Map<String, List<String>> _finalManifest = new HashMap<String, List<String>>();
   
   private static final String PROP_FILE_NAME = "zipper.properties";
   private static final String JS_EXTENSION = ".js";
@@ -76,7 +73,6 @@ public class ZipperMojo extends AbstractMojo {
     jsOptimize();
     cssMinify();
     group();
-    writeManifest();
     deleteWorkDir();
   }
   
@@ -85,7 +81,7 @@ public class ZipperMojo extends AbstractMojo {
    * 
    */
   private void configure() throws MojoFailureException {
-    List<String> paths = findFileNames("**/" + PROP_FILE_NAME, null, _project.getBasedir().getAbsolutePath());
+    List<String> paths = findFileNames("**/" + PROP_FILE_NAME, _project.getBasedir().getAbsolutePath());
     if(paths.size() == 0) {
       throw new MojoFailureException("Could not find your " + PROP_FILE_NAME + " file.  " +
       		"Please place it in src/main/resources");
@@ -102,8 +98,8 @@ public class ZipperMojo extends AbstractMojo {
     
     // find all the files we'll be working with inside the configured
     // web root (relative to the project's base dir)
-    _jsSourceFileNames = findFileNames("**/*" + JS_EXTENSION, null, getWebrootPath());
-    _cssSourceFileNames = findFileNames("**/*" + CSS_EXTENSION, null, getWebrootPath());
+    _jsSourceFileNames = findFileNames("**/*" + JS_EXTENSION, getWebrootPath());
+    _cssSourceFileNames = findFileNames("**/*" + CSS_EXTENSION, getWebrootPath());
   }
   /**
    * 
@@ -120,7 +116,7 @@ public class ZipperMojo extends AbstractMojo {
     List<String> excludedFiles = new ArrayList<String>();
     
     for(String pattern:excludedPatterns) {
-      excludedFiles.addAll(findFileNames(pattern, null, null));
+      excludedFiles.addAll(findFileNames(pattern, getWebrootPath()));
     }
     
     for(String fileName:_jsSourceFileNames) {
@@ -151,9 +147,9 @@ public class ZipperMojo extends AbstractMojo {
           }
           if(issues.size() > 0) {
             processLintFailure("The javascript lint check failed.  You can disable lint " +
-              "checking by setting the 'lintSkip' option to true.  Alternatively, you can force " +
-              "the build to succeed when lint errors are present by setting the 'lintFailOnWarning' " +
-              "option to false.");
+              "checking by setting the 'lint.skip' option to true or defining a list of files to " +
+              "eclude using the 'lint.exclude' option.  Alternatively, you can force the build to" +
+              "succeed when lint errors are present by setting the 'lint.failonwarning' option to false.");
           }
           
       } catch (IOException e) {
@@ -202,7 +198,7 @@ public class ZipperMojo extends AbstractMojo {
     }
     try {
       for(String fileName:_cssSourceFileNames) {
-        getLog().info("minifying " + fileName.substring(fileName.lastIndexOf('/') + 1));
+        getLog().info("minifying " + fileName);
         int lineBreak = _configuration.getInt(OptionKey.CSS_LINE_BREAK.getValue(), -1);
         _cssMinifier.minify(fileName, getOutputPathFromSourcePath(fileName), lineBreak);
       }
@@ -247,7 +243,9 @@ public class ZipperMojo extends AbstractMojo {
       getLog().info("building " + outputSuffix + " asset " + group.getName());
       
       for(String include:group.getIncludes()) {
-        for(String fileName:findFileNames(include, null, getWorkDirPath())) {
+        System.out.println("looking for " + include);
+        if(include.startsWith("/")) include = include.substring(1);
+        for(String fileName:findFileNames(include, getWorkDirPath())) {
           includedOptimizedFiles.add(fileName);
         }
       }
@@ -255,7 +253,6 @@ public class ZipperMojo extends AbstractMojo {
       String outputFileName = outputDirectory + "/" + group.getName() + outputSuffix;
       if(includedOptimizedFiles.size() > 0) {
         combineAssets(includedOptimizedFiles, outputFileName, group.getGzip());
-        _finalManifest.put("zipper" + outputSuffix + ".asset." + group.getName(), includedOptimizedFiles);
       }
     }
   }
@@ -272,6 +269,8 @@ public class ZipperMojo extends AbstractMojo {
     
     File outputFile = new File(outputFileName);
     File gzipOutputFile = new File(outputFileName + ".gz");
+    
+    getLog().info("writing asset to " + outputFileName);
     
     OutputStream output = null;
     GZIPOutputStream gzipOutput = null;
@@ -354,14 +353,13 @@ public class ZipperMojo extends AbstractMojo {
    * @param include
    * @return
    */
-  private List<String> findFileNames(String include, String exclude, String basePath) {
+  private List<String> findFileNames(String include, String basePath) {
     basePath =  basePath != null ? basePath : _project.getBuild().getOutputDirectory();
     File baseDir = new File(basePath);
     
     DirectoryScanner scanner = new DirectoryScanner();
     scanner.setBasedir(baseDir);
     scanner.setIncludes(new String[]{include});
-    if(exclude != null) scanner.setExcludes(new String[]{exclude});
     scanner.addDefaultExcludes();
     scanner.scan();
     
@@ -390,7 +388,9 @@ public class ZipperMojo extends AbstractMojo {
     return map;
   }
   
-  
+  /**
+   * 
+   */
   @SuppressWarnings("unchecked")
   private List<AssetGroup>getGroups(OptionKey prefix) {
     Iterator<String> iter = (Iterator<String>) _configuration.getKeys(prefix.getValue());
@@ -429,39 +429,7 @@ public class ZipperMojo extends AbstractMojo {
    * @return
    */
   private String getOutputDir() {
-    return _configuration.getString(OptionKey.OUTPUT_PATH.getValue(), DEFAULT_OUTPUT_DIR);
-  }
-  
-  /**
-   * 
-   */
-  private void writeManifest() {
-    List<String> files = findFileNames("**/" + PROP_FILE_NAME, null, null);
-    if(files.size() == 0) return;
-    
-    BufferedWriter out = null;
-    try {
-      out = new BufferedWriter(new FileWriter(files.get(0), true));
-      out.write("\n\n# ***** Generated Zipper Manifest *****\n");
-      
-      for(Entry<String,List<String>> entry:_finalManifest.entrySet()) {
-        for(String file:entry.getValue()) {
-          String pathInBuildDir = file.substring(_project.getBuild().getOutputDirectory().length() + 1);
-          out.write(entry.getKey() + " = " + pathInBuildDir.substring(WORK_DIR.length()) + "\n");
-        }
-      }
-      
-    } catch (IOException e) {
-      getLog().error("Could not write asset manifest", e);
-      
-    } finally {
-      try {
-        if(out != null) out.close();
-        
-      } catch (IOException e) {
-        getLog().error("could not close stream", e);
-      }
-    }
+    return _configuration.getString(OptionKey.OUTPUT_DIR.getValue(), DEFAULT_OUTPUT_DIR);
   }
   
   /**

@@ -11,7 +11,7 @@ public enum OptionKey {
   LINT_FAIL_ON_WARNING("lint.failonwarning"),
   JS_OPTIMIZE_OPTIONS("js.optimize.options"),
   CSS_LINE_BREAK("css.line.break"),
-  OUTPUT_PATH("output.dir"),
+  OUTPUT_DIR("output.dir"),
   JS_ASSET_PREFIX("js.asset"),
   CSS_ASSET_PREFIX("css.asset"),
   GZIP("gzip");

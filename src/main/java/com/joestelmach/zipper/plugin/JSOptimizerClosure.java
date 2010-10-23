@@ -25,7 +25,6 @@ public class JSOptimizerClosure {
   public void optimize(String inputFileName, String outputFileName, String options) throws IOException, InterruptedException {
     // ensure our output dir exists
     String outDir = outputFileName.substring(0, outputFileName.lastIndexOf('/'));
-    System.out.println(outDir);
     new File(outDir).mkdirs();
     
     options = options != null ? options : "";
