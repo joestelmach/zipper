@@ -20,8 +20,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.ConfigurationUtils;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -67,13 +69,12 @@ public class ZipperMojo extends AbstractMojo {
    * 
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
-    createWorkDir();
     configure();
+    createWorkDir();
     jsLintCheck();
     jsOptimize();
     cssMinify();
     group();
-    deleteWorkDir();
   }
   
   /**
@@ -82,18 +83,19 @@ public class ZipperMojo extends AbstractMojo {
    */
   private void configure() throws MojoFailureException {
     List<String> paths = findFileNames("**/" + PROP_FILE_NAME, _project.getBasedir().getAbsolutePath());
-    if(paths.size() == 0) {
-      throw new MojoFailureException("Could not find your " + PROP_FILE_NAME + " file.  " +
-      		"Please place it in src/main/resources");
-    }
-    
-    try {
-      String path = paths.get(0);
-      getLog().info(PROP_FILE_NAME + " found: " + path);
-      _configuration = new PropertiesConfiguration(paths.get(0));
+    if(paths.size() > 0) {
+      try {
+        String path = paths.get(0);
+        getLog().info(PROP_FILE_NAME + " found: " + path);
+        _configuration = new PropertiesConfiguration(paths.get(0));
+        ConfigurationUtils.dump(_configuration, System.out);
       
-    } catch (ConfigurationException e) {
-      throw new MojoFailureException("Could not load your " + PROP_FILE_NAME + " file.");
+      } catch (ConfigurationException e) {
+        throw new MojoFailureException("Could not load your " + PROP_FILE_NAME + " file.");
+      }
+    }
+    else {
+      _configuration = new BaseConfiguration();
     }
     
     // find all the files we'll be working with inside the configured
@@ -101,6 +103,7 @@ public class ZipperMojo extends AbstractMojo {
     _jsSourceFileNames = findFileNames("**/*" + JS_EXTENSION, getWebrootPath());
     _cssSourceFileNames = findFileNames("**/*" + CSS_EXTENSION, getWebrootPath());
   }
+  
   /**
    * 
    * @throws MojoFailureException
@@ -211,9 +214,7 @@ public class ZipperMojo extends AbstractMojo {
    * 
    */
   private void group() throws MojoExecutionException {
-    String outputPath = _project.getBuild().getOutputDirectory() + "/" + getOutputDir();
-    
-    File outputDirectory = new File(outputPath);
+    File outputDirectory = new File(getOutputDir());
     if(!outputDirectory.exists()) {
       outputDirectory.mkdirs();
     }
@@ -245,7 +246,7 @@ public class ZipperMojo extends AbstractMojo {
       for(String include:group.getIncludes()) {
         System.out.println("looking for " + include);
         if(include.startsWith("/")) include = include.substring(1);
-        for(String fileName:findFileNames(include, getWorkDirPath())) {
+        for(String fileName:findFileNames(include, getOutputDir())) {
           includedOptimizedFiles.add(fileName);
         }
       }
@@ -429,7 +430,9 @@ public class ZipperMojo extends AbstractMojo {
    * @return
    */
   private String getOutputDir() {
-    return _configuration.getString(OptionKey.OUTPUT_DIR.getValue(), DEFAULT_OUTPUT_DIR);
+    String folderName = _configuration.getString(OptionKey.OUTPUT_DIR.getValue(), DEFAULT_OUTPUT_DIR);
+    if(folderName.startsWith("/")) folderName = folderName.substring(1);
+    return _project.getBuild().getOutputDirectory() + "/" + folderName;
   }
   
   /**
@@ -447,23 +450,14 @@ public class ZipperMojo extends AbstractMojo {
    */
   private void createWorkDir() {
     deleteWorkDir();
-    new File(getWorkDirPath()).mkdirs();
+    new File(getOutputDir()).mkdirs();
   }
   
   /**
    * 
    */
   private void deleteWorkDir() {
-    deleteDir(new File(getWorkDirPath()));
-  }
-  
-  /**
-   * 
-   * @return the absolute path the directory used to store optimized
-   * files while building
-   */
-  private String getWorkDirPath() {
-    return _project.getBuild().getOutputDirectory() + "/" + WORK_DIR;
+    deleteDir(new File(getOutputDir()));
   }
   
   /**
@@ -472,7 +466,7 @@ public class ZipperMojo extends AbstractMojo {
    * @return
    */
   private String getOutputPathFromSourcePath(String sourcePath) {
-    return getWorkDirPath() + "/" + sourcePath.substring(getWebrootPath().length() + 1);
+    return getOutputDir() + "/" + sourcePath.substring(getWebrootPath().length() + 1);
   }
   
   /**

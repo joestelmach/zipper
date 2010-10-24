@@ -70,7 +70,7 @@ public class AssetTag extends SimpleTagSupport {
    */
   private void writeProduction() throws IOException {
     // determine where the file is
-    String baseDir = _configuration.getString(OptionKey.OUTPUT_DIR.getValue());
+    String baseDir = _configuration.getString(OptionKey.OUTPUT_DIR.getValue(), "assets");
     _name = "/" + baseDir + "/" + _name;
     
     JspWriter writer = getJspContext().getOut();

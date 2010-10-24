@@ -14,6 +14,7 @@ public enum OptionKey {
   OUTPUT_DIR("output.dir"),
   JS_ASSET_PREFIX("js.asset"),
   CSS_ASSET_PREFIX("css.asset"),
+  KEEP_NON_GROUPED("keep.non.grouped"),
   GZIP("gzip");
   
   private static final Map<String, OptionKey> VALUE_MAP;
