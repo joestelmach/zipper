@@ -38,160 +38,163 @@
     <h2>Getting Started</h2>
     <ol>
       <li>
-        Add the following plugin definition to the build section of your POM
-        file:
+        <p>
+          Add the following plugin definition to the build section of your POM file:
+        </p>
 
 <pre><code>&lt;plugin&gt;
-  &lt;groupId&gt;com.joestelmach&lt;groupId&gt;
-  &lt;artifactId&gt;zipper&lt;artifactId&gt;
-  &lt;version&gt;0.1-SNAPSHOT&lt;version&gt;
-  &lt;configuration&gt;
-  ...
-  &lt;configuration&gt;
+  &lt;groupId&gt;com.joestelmach&lt;/groupId&gt;
+  &lt;artifactId&gt;zipper&lt;/artifactId&gt;
+  &lt;version&gt;0.1-SNAPSHOT&lt;/version&gt;
   &lt;executions&gt;
     &lt;execution&gt;
       &lt;goals&gt;
-        &lt;phase&gt;process-resources&lt;phase&gt;
-        &lt;goal&gt;pack&lt;goal&gt;
-      &lt;goals&gt;
-    &lt;execution&gt;
-  &lt;executions&gt;
-&lt;plugin&gt;</code></pre>
-<em>Note: The plugin should be available in the Central Maven Repository
-shortly</em>
+        &lt;goal&gt;zipper&lt;/goal&gt;
+      &lt;/goals&gt;
+    &lt;/execution&gt;
+  &lt;/executions&gt;
+&lt;/plugin&gt;</code></pre>
+<em>Note: The plugin should be available in the Central Maven Repository shortly</em>
       </li>
 
       <li>
-        <a href="#configuration">Configure</a> zipper to your needs
+        <p>
+        Create a zipper.properties file in the src/main/resources directory.  Here's a minimal example:
+        </p>
+<pre><code>webroot = src/main/webapp
+output.dir = static 
+asset.js.script = **/*.js
+asset.css.style = **/*.css</code></pre>
       </li>
 
-      <li>Enjoy faster page loads</li>
+      <li>
+        <p>
+          The plugin is bound to the <code>process-resources</code> goal, but can be invoked directly:  
+        </p>
+<pre><code>mvn zipper:zipper</code></pre>
+      </li>
+
     </ol>
 
-    <h3 id="configuration">Configuration</h3>
+    <h2 id="configuration">Configuration</h2>
+
     <p>
-      zipper's configuration can be broken down into four sections: 
-      <a href="#configuration_lint"> JavaScript lint</a>, 
-      <a href="#configuration_js_optimization">JavaScript optimization</a>,
-      <a href="#configration_css">CSS minification</a>, and
-      <a href="#configration_grouping">asset grouping.</a>
+      Zipper uses a properties file for configuration as opposed to the standard block of XML in the POM.  This is partly justified by the need to access the configuration at runtime to support <a href="#asset_tags">asset tags</a>, but is mostly justified by XML's lack of succinctness and general inflexability.
     </p>
 
-    <dl>
-      <dt id="configuration_lint">JavaScript lint</dt>
-      <dd>
-        <p>
-          Zipper will run your JavaScript through the 
-          <a href="http://www.jslint.com/">JSLint</a> code quality tool by
-          default, and report any warnings found.  If you wish to skip this 
-          check, pass the <em>lintSkip</em> option:
-        </p>
-<pre><code>&lt;lintSkip&gt;true&lt;/lintSkip&gt;</code></pre>
+    <p>
+      Given the above configuration, zipper will lint check and optimize all javascript and css files found under src/main/webapp, and then concatenate them to generate script.js and style.css, which will be placed in the target/classes/static directory along with a gzipped version of each.
+    </p>
 
-        <p>
-          If you would like to run the lint check but exclude certain
-          files, use the <em>lintExcludes</em> option:
-        </p>
-<pre><code>&lt;lintExcludes&gt;
-  &lt;lintExclude&gt;prototype.js&lt;lintExclude&gt;
-  &lt;lintExclude&gt;scriptaculous.js&lt;lintExclude&gt;
-&lt;lintExcludes&gt;</code></pre>
+    <p>
+      The following describes all possible options, none of which are required.
+    </p>
 
-        <p>
-          You can customize the jslint execution with any combination of 
-          <a href="http://www.jslint.com/lint.html#options">defined
-          options</a>.  For example, the following will allow bitwise 
-          operators and eval statements:
-        </p>
-<pre><code>&lt;lintOptions&gt;
-  &lt;bitwise&gt;true&lt;/bitwise&gt;
-  &lt;evil&gt;true&lt;/evil&gt;
-&lt;/lintOptions&gt;</code></pre>
-        <p>
-          If you feel strongly about lint, you can ask zipper to abort
-          when warnings are encountered:
-<pre><code>&lt;lintFailOnWarning&gt;true&lt;/lintFailOnWarning&gt;</code></pre>
+    <table>
+      <tr>
+        <th>option</th>
+        <th>default</th>
+        <th>discussion</th>
+      </tr>
+      <tr>
+        <th>webroot</th>
+        <td>src/main/webapp</td>
+        <td>The path to your project's web root directory.
+      </tr>
+      <tr>
+        <th>output.dir</th>
+        <td>static</td>
+        <td>The name of the folder placed under target/classes that zipper should populate with optimized assets.
+      </tr>
+      <tr>
+        <th>keep.non.grouped</th>
+        <td>true</td>
+        <td>Leaves a copy of the optimized version of each file in the output directory, regardless of whether or not that file was grouped into an asset.</td>
+      </tr>
+      <tr>
+        <th>lint.skip</th>
+        <td>false</td>
+        <td>Forces all JavaScript lint checks to be skipped.</td>
+      </tr>
+      <tr>
+        <th>lint.exclude</th>
+        <td></td>
+        <td>Excludes the files matching the given <a href="http://ant.apache.org/manual/dirtasks.html#patterns">pattern</a> from lint checks.</td>
+      </tr>
+      <tr>
+        <th>lint.failonwarning</th>
+        <td>false</td>
+        <td>When true, the Maven build will fail when a lint warning is encountered.</td>
+      </tr>
+      <tr>
+        <th>lint.option.<em>xxx</em></th>
+        <td></td>
+        <td>passes option <em>xxx</em> to JSLint</td>
+      </tr>
+      <tr>
+        <th>js.optimize.options</th>
+        <td></td>
+        <td>The given value will be passed as a command line option to the Closure Compiler</td>
+      </tr>
+      <tr>
+        <th>css.line.break</th>
+        <td></td>
+        <td>The column at which a line break should be inserted in the minified CSS.
+      </tr>
+      <tr>
+        <th>gzip</th>
+        <td>true</td>
+        <td>When true, a gzipped version of each grouped asset will be generated</td>
+      </tr>
+      <tr>
+        <th>js.asset.<em>xxx</em></th>
+        <td></td>
+        <td>A <a href="http://ant.apache.org/manual/dirtasks.html#patterns">pattern</a> list defining a JavaScript asset named <em>xxx</em>.  The asset will be a concatentation of the optimized version of all matching files in the order given.</td>
+      </tr>
+      <tr>
+        <th>css.asset.<em>xxx</em></th>
+        <td></td>
+        <td>A <a href="http://ant.apache.org/manual/dirtasks.html#patterns">pattern</a> list defining a CSS asset named <em>xxx</em>.  The asset will be a concatentation of the minified version of all matching files in the order given.</td>
+      </tr>
+      <tr>
+        <th>environment</th>
+        <td>development</td>
+        <td>The environment an <a href="#asset_tags">asset tag</a> uses to determine which assets to include.
+      </tr>
+    </table>
 
-        </p>
-      </dd>
-      
-      <dt id="configuration_js_optimization">JavaScript optimization</dt>
-      <dd>
-        <p>
-          Once lint checking is complete, your JavaScript will be optimized
-          using the <a href="http://code.google.com/closure/compiler/">Closure 
-          Compiler</a>.  You can control the the Closure execution by passing
-          an options string containing any combination of 
-          <a href="http://code.google.com/closure/compiler/docs/overview.html">
-          documented options</a>.  For example, the following will enable 
-          advanced optimizations:
-        </p>
-<pre><code>&lt;optimizeOptions&gt;
-  --compilation_level ADVANCED_OPTIMIZATIONS
-&lt;/optimizeOptions&gt;</code></pre>
-      </dd>
-      
-      <dt id="configration_css">CSS minification</dt>
-      <dd>
-        zipper will pass your CSS files through YUI Compressor's 
-        <a href="http://developer.yahoo.com/yui/compressor/css.html">
-        CSS minifier</a>.  The only option available here is the
-        <em>minifyLineBreak</em> option, which will force
-        a line break in the output at the given column number:
-<pre><code>&lt;minifyLineBreak&gt;80&lt;/minifyLineBreak&gt;</code></pre>
-      </dd>
-      
-      <dt id="configration_grouping">asset grouping</dt>
-      <dd>
-        <p>
-          zipper's asset grouping feature allows you to group particular assets
-          together, in a particular order, into a single gzipped resource.
-          JavaScript and CSS groups are configured separately.  
-        </p>
-        <p>
-          The following example creates one concatentated JavaScript asset consisting of 
-          the optimized version of prototype.js, followed by the optimized versions of 
-          all other JavaScript files in the project.  This asset will
-          then be gzipped and given a name according the the <em>name</em>
-          option, and saved in a newly created 'static' directory.  The 
-          <em>groupOutputDirectory</em> and 
-          <em>gzip</em> options are optional, and default to <strong> 
-          static</strong> and <strong>true</strong>.
-        </p>
-<pre><code>&lt;groupOutputDirectory&gt;static&lt;groupOutputDirectory&gt;
-&lt;javascriptGroups&gt;
-  &lt;javascriptGroup&gt;
-    &lt;gzip&gt;true&lt;gzip&gt;
-    &lt;name&gt;common&lt;name&gt;
-    &lt;includes&gt;
-      &lt;include&gt;prototype.js&lt;include&gt; 
-      &lt;include&gt;**/*.js&lt;include&gt; 
-    &lt;includes&gt;
-  &lt;javascriptGroup&gt;
-&lt;javascriptGroups&gt;
-</code></pre>
 
-        <p>
-          The stylesheet configuration is nearly identical:
-        </p>
-<pre><code>&lt;stylesheetGroups&gt;
-  &lt;stylesheetGroup&gt;
-    &lt;name&gt;barfoo&lt;name&gt;
-    &lt;includes&gt;
-      &lt;include&gt;css&lt;include&gt;
-    &lt;includes&gt;
-  &lt;stylesheetGroup&gt;
-&lt;stylesheetGroups&gt;
-</code></pre>
+    <h2 id="asset_tags">Asset Tags</h2>
+    <p>
+      Concatenating and optimizing multiple assets into one file is a great idea for production environments, since we can significantly reduce both the number of HTTP requests and the size of their payload, but this optimization could lead to a significant decrease in productivity if we need to re-optimize our assets each time a change is made.  In order to mitigate this, we need a method for the JSP to selectively include either the original or optimized assets depending on the current environment.  Zipper has solved this problem with a custom JSP tag.
+    </p>
+    <p>
+      To get started, you'll need to add zipper as a dependency in your POM:
+    </p>
 
-        <p>
-          If you choose not to configure any groups, the default behavior
-          will bundle all of your JavaScript files into a single
-          script-all.js.gz file, and all of your stylesheets into a single
-          style-all.css.gz file.
-        </p>
-      </dd>
-    </dl>
+<pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;com.joestelmach&lt;/groupId&gt; 
+  &lt;artifactId&gt;zipper&lt;/artifactId&gt;
+  &lt;version&gt;0.1-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+
+    <p>
+      Then you can use the <code>&lt;zipper:asset&gt;</code> tag in your JSP pages:
+    </p>
+
+<pre><code>&lt;%@ taglib prefix="zipper" uri="http://joestelmach.com/zipper" %&gt;
+
+&lt;zipper:asset type="css" name="style"/&gt;
+&lt;zipper:asset type="js" name="script"/&gt;</code></pre>
+
+    <p>
+      This tag will either include the optimized asset with the given name, or each file the optimized asset consists of depending on the environment.  The last piece of the puzzle is letting zipper know which environment we're running in.  This can be done either by setting a System property named <em>environment</em>, or by specifiying the <em>environment</em> option in the zipper.properties file.
+    </p>
+
+    <p>
+      When the environment value is <em>development</em>, the original files will be included.  All other values will cause the optimized assets to be included.  If you change this value at runtime, The JSP page will need to be re-compiled.
+    </p>
+
   </body>
 </html>
 
