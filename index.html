@@ -59,21 +59,23 @@
 
       <li>
         <p>
-        Create a zipper.properties file in the src/main/resources directory.  Here's a minimal example:
+        Create a zipper.properties file in the src/main/resources directory:
         </p>
 <pre><code>webroot = src/main/webapp
 output.dir = static 
 asset.js.script = **/*.js
 asset.css.style = **/*.css</code></pre>
+    <p>
+      This configuration will lint check and optimize all javascript and css files found under src/main/webapp, and then concatenate them to generate script.js and style.css, which will be placed in the target/classes/static directory along with a gzipped version of each.
+    </p>
       </li>
 
       <li>
         <p>
-          The plugin is bound to the <code>process-resources</code> goal, but can be invoked directly:  
+          By default, zipper will automatically be invoked during the <code>process-resources</code> goal, but can be invoked directly:  
         </p>
 <pre><code>mvn zipper:zipper</code></pre>
       </li>
-
     </ol>
 
     <h2 id="configuration">Configuration</h2>
@@ -82,82 +84,79 @@ asset.css.style = **/*.css</code></pre>
       Zipper uses a properties file for configuration as opposed to the standard block of XML in the POM.  This is partly justified by the need to access the configuration at runtime to support <a href="#asset_tags">asset tags</a>, but is mostly justified by XML's lack of succinctness and general inflexability.
     </p>
 
-    <p>
-      Given the above configuration, zipper will lint check and optimize all javascript and css files found under src/main/webapp, and then concatenate them to generate script.js and style.css, which will be placed in the target/classes/static directory along with a gzipped version of each.
-    </p>
 
     <p>
       The following describes all possible options, none of which are required.
     </p>
 
     <table>
-      <tr>
+      <tr class="heading_row">
         <th>option</th>
-        <th>default</th>
+        <th class='default_heading'>default</th>
         <th>discussion</th>
       </tr>
       <tr>
-        <th>webroot</th>
+        <td>webroot</td>
         <td>src/main/webapp</td>
         <td>The path to your project's web root directory.
       </tr>
       <tr>
-        <th>output.dir</th>
+        <td>output.dir</td>
         <td>static</td>
         <td>The name of the folder placed under target/classes that zipper should populate with optimized assets.
       </tr>
       <tr>
-        <th>keep.non.grouped</th>
+        <td>keep.non.grouped</td>
         <td>true</td>
         <td>Leaves a copy of the optimized version of each file in the output directory, regardless of whether or not that file was grouped into an asset.</td>
       </tr>
       <tr>
-        <th>lint.skip</th>
+        <td>lint.skip</td>
         <td>false</td>
         <td>Forces all JavaScript lint checks to be skipped.</td>
       </tr>
       <tr>
-        <th>lint.exclude</th>
+        <td>lint.exclude</td>
         <td></td>
         <td>Excludes the files matching the given <a href="http://ant.apache.org/manual/dirtasks.html#patterns">pattern</a> from lint checks.</td>
       </tr>
       <tr>
-        <th>lint.failonwarning</th>
+        <td>lint.failonwarning</td>
         <td>false</td>
         <td>When true, the Maven build will fail when a lint warning is encountered.</td>
       </tr>
       <tr>
-        <th>lint.option.<em>xxx</em></th>
+        <td>lint.option.<em>xxx</em></td>
         <td></td>
         <td>passes option <em>xxx</em> to JSLint</td>
       </tr>
       <tr>
-        <th>js.optimize.options</th>
+        <td>js.optimize.options</td>
         <td></td>
         <td>The given value will be passed as a command line option to the Closure Compiler</td>
       </tr>
       <tr>
-        <th>css.line.break</th>
+        <td>css.line.break</td>
         <td></td>
         <td>The column at which a line break should be inserted in the minified CSS.
       </tr>
       <tr>
-        <th>gzip</th>
+        <td>gzip</td>
         <td>true</td>
         <td>When true, a gzipped version of each grouped asset will be generated</td>
       </tr>
       <tr>
-        <th>js.asset.<em>xxx</em></th>
+        <td>js.asset.<em>xxx</em></td>
         <td></td>
         <td>A <a href="http://ant.apache.org/manual/dirtasks.html#patterns">pattern</a> list defining a JavaScript asset named <em>xxx</em>.  The asset will be a concatentation of the optimized version of all matching files in the order given.</td>
       </tr>
       <tr>
-        <th>css.asset.<em>xxx</em></th>
+        <td>css.asset.<em>xxx</em></td>
         <td></td>
         <td>A <a href="http://ant.apache.org/manual/dirtasks.html#patterns">pattern</a> list defining a CSS asset named <em>xxx</em>.  The asset will be a concatentation of the minified version of all matching files in the order given.</td>
       </tr>
       <tr>
-        <th>environment</th>
+        <td>environment</td>
         <td>development</td>
         <td>The environment an <a href="#asset_tags">asset tag</a> uses to determine which assets to include.
       </tr>

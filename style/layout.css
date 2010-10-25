@@ -65,3 +65,23 @@ pre .tag {
   border:1px solid #222;
   padding:0 5px;
 }
+
+table {
+  border-collapse:collapse;
+}
+
+table td,
+table th {
+  padding:10px 40px 10px 10px;
+  vertical-align:top;
+  text-align:left;
+  border-left:1px solid #222;
+}
+table th {
+  padding-left:10px;
+}
+table tr.heading_row th {
+  border-bottom:1px solid #222;
+  background-color:#e3e3e3;
+  vertical-align:middle;
+}
