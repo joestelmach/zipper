@@ -55,7 +55,6 @@ public class ZipperMojo extends AbstractMojo {
   private static final String JS_EXTENSION = ".js";
   private static final String CSS_EXTENSION = ".css";
   private static final String DEFAULT_OUTPUT_DIR = "assets";
-  private static final String WORK_DIR = "zipper";
   
   /**
    * The maven project.
@@ -477,10 +476,10 @@ public class ZipperMojo extends AbstractMojo {
     if(dir.isDirectory()) {
       for (String fileName:dir.list()) {
         boolean success = deleteDir(new File(dir, fileName));
-        if(!success)  return false;
+        if(!success) return false;
       }
     }
-    // The directory is now empty so delete it
+    // The directory is now empty
     return dir.delete();
   }
 }
