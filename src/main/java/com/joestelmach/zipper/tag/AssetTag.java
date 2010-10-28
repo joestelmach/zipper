@@ -10,7 +10,7 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
-import com.joestelmach.zipper.plugin.OptionKey;
+import com.joestelmach.zipper.plugin.ConfigKey;
 
 public class AssetTag extends SimpleTagSupport {
   private String _type;
@@ -70,7 +70,7 @@ public class AssetTag extends SimpleTagSupport {
    */
   private void writeProduction() throws IOException {
     // determine where the file is
-    String baseDir = _configuration.getString(OptionKey.OUTPUT_DIR.getValue(), "assets");
+    String baseDir = _configuration.getString(ConfigKey.OUTPUT_DIR.getValue(), "assets");
     _name = "/" + baseDir + "/" + _name;
     
     JspWriter writer = getJspContext().getOut();
