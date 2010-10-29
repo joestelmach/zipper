@@ -63,7 +63,7 @@ public class AssetTag extends SimpleTagSupport {
   }
   
   /**
-   * 
+   * Sets the asset type, either js or css
    * @param type
    */
   public void setType(String type) {
@@ -71,6 +71,8 @@ public class AssetTag extends SimpleTagSupport {
   }
   
   /**
+   * Sets the asset name, this is the last token of the asset configuration
+   * key in zipper.properties.
    * 
    * @param name
    */
@@ -79,6 +81,7 @@ public class AssetTag extends SimpleTagSupport {
   }
   
   /**
+   * Specifies a media attribute value to be written out with each include
    * 
    * @param media
    */
@@ -98,6 +101,8 @@ public class AssetTag extends SimpleTagSupport {
   }
   
   /**
+   * Writes the asset includes out as production references.  These includes
+   * will refer to the optimized, concatenated version of each configured asset.
    * 
    * @throws IOException
    */
@@ -114,6 +119,8 @@ public class AssetTag extends SimpleTagSupport {
   }
   
   /**
+   * Writes the asset includes out as development references.  These includes
+   * will refer to the non-optimized, original version of each asset.
    * 
    * @throws IOException
    */
@@ -127,8 +134,9 @@ public class AssetTag extends SimpleTagSupport {
     // the appropriate html to include the asset on the page.
     JspWriter writer = getJspContext().getOut();
     for(String pattern:patterns) {
-      for(String include:_searcher.search(pattern, _assetsDir)) {
-        include = include.substring(_assetsDir.length());
+      String searchDir = new File(_assetsDir).exists() ? _assetsDir : _webrootDir;
+      for(String include:_searcher.search(pattern, searchDir)) {
+        include = include.substring(searchDir.length());
         writer.write(_type.equals(CSS_TYPE) ? getCssInclude(include) : getJsInclude(include));
         writer.write("\n");
       }
@@ -136,6 +144,7 @@ public class AssetTag extends SimpleTagSupport {
   }
   
   /**
+   * Generates an html snippet for a css include of the given relative file path
    * 
    * @param file
    * @return
@@ -145,6 +154,7 @@ public class AssetTag extends SimpleTagSupport {
   }
   
   /**
+   * Generates an html snippet for a js include of the given relative file path
    * 
    * @param file
    * @return
