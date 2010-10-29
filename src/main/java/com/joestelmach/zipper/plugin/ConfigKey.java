@@ -15,7 +15,8 @@ public enum ConfigKey {
   CSS_LINE_BREAK("css.line.break"),
   JS_ASSET_PREFIX("js.asset"),
   CSS_ASSET_PREFIX("css.asset"),
-  GZIP("gzip");
+  GZIP("gzip"),
+  ENVIRONMENT("environment");
   
   private static final Map<String, ConfigKey> VALUE_MAP;
   

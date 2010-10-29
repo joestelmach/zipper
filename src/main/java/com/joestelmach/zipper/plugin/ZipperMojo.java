@@ -24,13 +24,14 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.DirectoryScanner;
+
+import com.joestelmach.util.FileSearcher;
 
 /**
  * @author Joe Stelmach
  * 
  * @goal zipper 
- * @phase process-resources
+ * @phase package 
  */
 public class ZipperMojo extends AbstractMojo {
   
@@ -39,6 +40,7 @@ public class ZipperMojo extends AbstractMojo {
   private JSOptimizerClosure _jsOptimizer;
   private CSSMinifierYUI _cssMinifier;
   private Configuration _configuration;
+  private FileSearcher _fileSearcher = new FileSearcher();
   
   private static final String PROP_FILE_NAME = "zipper.properties";
   private static final String JS_EXTENSION = ".js";
@@ -72,7 +74,7 @@ public class ZipperMojo extends AbstractMojo {
    */
   private void configure() throws MojoFailureException {
     // search for zipper.properties in the project's base directory
-    List<String> paths = findFileNames("**/" + PROP_FILE_NAME, 
+    List<String> paths = _fileSearcher.search("**/" + PROP_FILE_NAME, 
         _project.getBasedir().getAbsolutePath());
     
     if(paths.size() > 0) {
@@ -93,8 +95,8 @@ public class ZipperMojo extends AbstractMojo {
     
     // find all the files we'll be working with inside the configured
     // web root (relative to the project's base dir)
-    _jsSourceFileNames = findFileNames("**/*" + JS_EXTENSION, getWebrootPath());
-    _cssSourceFileNames = findFileNames("**/*" + CSS_EXTENSION, getWebrootPath());
+    _jsSourceFileNames = _fileSearcher.search("**/*" + JS_EXTENSION, getWebrootPath());
+    _cssSourceFileNames = _fileSearcher.search("**/*" + CSS_EXTENSION, getWebrootPath());
   }
   
   /**
@@ -110,7 +112,7 @@ public class ZipperMojo extends AbstractMojo {
     List<String> excludedPatterns = _configuration.getList(ConfigKey.LINT_EXCLUDES.getKey());
     List<String> excludedFiles = new ArrayList<String>();
     for(String pattern:excludedPatterns) {
-      excludedFiles.addAll(findFileNames(pattern, getWebrootPath()));
+      excludedFiles.addAll(_fileSearcher.search(pattern, getWebrootPath()));
     }
     
     LinterJSLint linter = new LinterJSLint(_configuration, getLog());
@@ -194,8 +196,7 @@ public class ZipperMojo extends AbstractMojo {
       
       for(String include:group.getIncludes()) {
         System.out.println("looking for " + include);
-        if(include.startsWith("/")) include = include.substring(1);
-        for(String fileName:findFileNames(include, getOutputDir())) {
+        for(String fileName:_fileSearcher.search(include, getOutputDir())) {
           includedOptimizedFiles.add(fileName);
         }
       }
@@ -285,28 +286,6 @@ public class ZipperMojo extends AbstractMojo {
     } finally {
       if(input != null) input.close();
     }
-  }
-  
-  /**
-   * 
-   * @param include
-   * @return
-   */
-  private List<String> findFileNames(String include, String basePath) {
-    basePath =  basePath != null ? basePath : _project.getBuild().getOutputDirectory();
-    File baseDir = new File(basePath);
-    
-    DirectoryScanner scanner = new DirectoryScanner();
-    scanner.setBasedir(baseDir);
-    scanner.setIncludes(new String[]{include});
-    scanner.addDefaultExcludes();
-    scanner.scan();
-    
-    List<String> fileNames = new ArrayList<String>();
-    for(String fileName:scanner.getIncludedFiles() ) {
-      fileNames.add(baseDir + "/" + fileName);
-    }
-    return fileNames;
   }
   
   /**
