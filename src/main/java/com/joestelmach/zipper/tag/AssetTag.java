@@ -1,4 +1,5 @@
 package com.joestelmach.zipper.tag;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -15,12 +16,21 @@ import com.joestelmach.util.FileSearcher;
 import com.joestelmach.zipper.plugin.ConfigKey;
 
 public class AssetTag extends SimpleTagSupport {
+  private static Configuration _configuration;
+  private static String _webrootDir;
+  private static String _assetsDir;
+  private static final String DEVELOPMENT_ENVIRONMENT = "development";
+  private static final String CSS_TYPE = "css";
+  private static final String JS_TYPE = "js";
+  
   private String _type;
   private String _name;
   private String _media = "screen";
   private FileSearcher _searcher = new FileSearcher();
   
-  private static Configuration _configuration;
+  /**
+   * 
+   */
   static {
     try {
       _configuration = new PropertiesConfiguration("zipper.properties");
@@ -34,10 +44,17 @@ public class AssetTag extends SimpleTagSupport {
    * 
    */
   public void doTag() throws JspException, IOException {
-    if(!_type.equals("css") && !_type.equals("js")) return;
+    if(!_type.equals(CSS_TYPE) && !_type.equals(JS_TYPE)) return;
+   
+    if(_assetsDir == null) {
+      String outputDir = _configuration.getString(ConfigKey.OUTPUT_DIR.getKey(), "assets");
+      PageContext context = (PageContext) getJspContext();
+      _webrootDir = context.getServletContext().getRealPath("/");
+      _assetsDir = _webrootDir + "/" + outputDir;
+    }
     
     String environment = getEnvironment();
-    if(environment == null || environment.length() == 0 || environment.equals("development")) {
+    if(environment == null || environment.length() == 0 || environment.equals(DEVELOPMENT_ENVIRONMENT)) {
       writeDevelopment();
     }
     else {
@@ -85,13 +102,15 @@ public class AssetTag extends SimpleTagSupport {
    * @throws IOException
    */
   private void writeProduction() throws IOException {
-    // determine where the file is
-    String baseDir = _configuration.getString(ConfigKey.OUTPUT_DIR.getKey(), "assets");
-    _name = "/" + baseDir + "/" + _name;
     
-    JspWriter writer = getJspContext().getOut();
-    String html = _type.equals("css") ? getCssInclude(_name + ".css") : getJsInclude(_name + ".js");
-    writer.write(html + "\n");
+    File file = new File(_assetsDir + "/" + _name + "." + _type);
+    if(file.exists()) {
+      String relativePath = file.getAbsolutePath().substring(_webrootDir.length());
+      String cacheBustSuffix = "?" + file.lastModified();
+      relativePath += cacheBustSuffix;
+      String html = _type.equals(CSS_TYPE) ? getCssInclude(relativePath) : getJsInclude(relativePath);
+      getJspContext().getOut().write(html + "\n");
+    }
   }
   
   /**
@@ -100,24 +119,17 @@ public class AssetTag extends SimpleTagSupport {
    */
   private void writeDevelopment() throws IOException {
     
-    PageContext context = (PageContext) getJspContext();
-    
-    // first find the absolute path to zipper's output directory
-    // inside the webapp root
-    String outputDir = _configuration.getString(ConfigKey.OUTPUT_DIR.getKey(), "assets");
-    String baseDirPath = context.getServletContext().getRealPath("/") + "/" + outputDir;
-    
-    // now find the configured asset patterns
+    // find the configured asset patterns
     @SuppressWarnings("unchecked")
     List<String> patterns = _configuration.getList(_type + ".asset." + _name);
     
-    // and find all files that match each pattern, and generate
+    // find all files that match each pattern, and generate
     // the appropriate html to include the asset on the page.
     JspWriter writer = getJspContext().getOut();
     for(String pattern:patterns) {
-      for(String include:_searcher.search(pattern, baseDirPath)) {
-        include = include.substring(baseDirPath.length());
-        writer.write(_type.equals("css") ? getCssInclude(include) : getJsInclude(include));
+      for(String include:_searcher.search(pattern, _assetsDir)) {
+        include = include.substring(_assetsDir.length());
+        writer.write(_type.equals(CSS_TYPE) ? getCssInclude(include) : getJsInclude(include));
         writer.write("\n");
       }
     }
