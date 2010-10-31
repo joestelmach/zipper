@@ -108,11 +108,15 @@ public class AssetTag extends SimpleTagSupport {
    */
   private void writeProduction() throws IOException {
     
+    boolean bustCache = _configuration.getBoolean(ConfigKey.BUST_CACHE.getKey(), true);
+    
     File file = new File(_assetsDir + "/" + _name + "." + _type);
     if(file.exists()) {
       String relativePath = file.getAbsolutePath().substring(_webrootDir.length());
-      String cacheBustSuffix = "?" + file.lastModified();
-      relativePath += cacheBustSuffix;
+      if(bustCache) {
+        String cacheBustSuffix = "?" + file.lastModified();
+        relativePath += cacheBustSuffix;
+      }
       String html = _type.equals(CSS_TYPE) ? getCssInclude(relativePath) : getJsInclude(relativePath);
       getJspContext().getOut().write(html + "\n");
     }

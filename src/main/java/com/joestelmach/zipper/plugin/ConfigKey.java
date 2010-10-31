@@ -16,6 +16,7 @@ public enum ConfigKey {
   JS_ASSET_PREFIX("js.asset"),
   CSS_ASSET_PREFIX("css.asset"),
   GZIP("gzip"),
+  BUST_CACHE("bust.cache"),
   ENVIRONMENT("environment");
   
   private static final Map<String, ConfigKey> VALUE_MAP;

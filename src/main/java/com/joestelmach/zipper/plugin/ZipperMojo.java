@@ -39,6 +39,7 @@ public class ZipperMojo extends AbstractMojo {
   private List<String> _cssSourceFileNames;
   private JSOptimizerClosure _jsOptimizer;
   private CSSMinifierYUI _cssMinifier;
+  private CSSCacheBuster _cssCacheBuster;
   private Configuration _configuration;
   private FileSearcher _fileSearcher = new FileSearcher();
   
@@ -56,7 +57,7 @@ public class ZipperMojo extends AbstractMojo {
   private MavenProject _project;
   
   /**
-   * 
+   * Executes the zipper plugin 
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
     configure();
@@ -64,7 +65,7 @@ public class ZipperMojo extends AbstractMojo {
     jsLintCheck();
     jsOptimize();
     cssMinify();
-    group();
+    concatenate();
   }
   
   /**
@@ -77,6 +78,9 @@ public class ZipperMojo extends AbstractMojo {
     List<String> paths = _fileSearcher.search("**/" + PROP_FILE_NAME, 
         _project.getBasedir().getAbsolutePath());
     
+    // and load it up into a configuration, or use an empty configuration 
+    // if no zipper.properties file is found
+    _configuration = new BaseConfiguration();
     if(paths.size() > 0) {
       try {
         String path = paths.get(0);
@@ -89,17 +93,17 @@ public class ZipperMojo extends AbstractMojo {
       }
     }
     
-    else {
-      _configuration = new BaseConfiguration();
-    }
-    
     // find all the files we'll be working with inside the configured
     // web root (relative to the project's base dir)
     _jsSourceFileNames = _fileSearcher.search("**/*" + JS_EXTENSION, getWebrootPath());
     _cssSourceFileNames = _fileSearcher.search("**/*" + CSS_EXTENSION, getWebrootPath());
+    
+    _cssMinifier = new CSSMinifierYUI();
+    _cssCacheBuster = new CSSCacheBuster(getLog());
   }
   
   /**
+   * Runs all the javascript files through the linter
    * 
    * @throws MojoExecutionException
    */
@@ -122,6 +126,7 @@ public class ZipperMojo extends AbstractMojo {
   }
   
   /**
+   * Runs all the javascript files through the closure compiler
    * 
    * @throws MojoFailureException
    */
@@ -144,27 +149,30 @@ public class ZipperMojo extends AbstractMojo {
   }
   
   /**
-   * 
+   * Runs all the css files through the YUI minifier, and optionally cache-busts
+   * any url references
    */
   private void cssMinify() throws MojoFailureException {
-    if(_cssMinifier == null) {
-      _cssMinifier = new CSSMinifierYUI();
-    }
+    boolean bustCache = _configuration.getBoolean(ConfigKey.BUST_CACHE.getKey(), true);
     try {
       for(String fileName:_cssSourceFileNames) {
         getLog().info("minifying " + fileName);
+        String outputFileName = getOutputPathFromSourcePath(fileName);
         int lineBreak = _configuration.getInt(ConfigKey.CSS_LINE_BREAK.getKey(), -1);
-        _cssMinifier.minify(fileName, getOutputPathFromSourcePath(fileName), lineBreak);
+        _cssMinifier.minify(fileName, outputFileName, lineBreak);
+        if(bustCache) _cssCacheBuster.bustIt(outputFileName);
       }
     } catch(IOException e) {
       throw new MojoFailureException(e.getMessage());
     }
   }
   
-  /*
+  /**
+   * Concatenates the configured asset.js and asset.css groups
    * 
+   * @throws MojoExecutionException
    */
-  private void group() throws MojoExecutionException {
+  private void concatenate() throws MojoExecutionException {
     File outputDirectory = new File(getOutputDir());
     if(!outputDirectory.exists()) {
       outputDirectory.mkdirs();
