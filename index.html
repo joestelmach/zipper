@@ -146,6 +146,11 @@ asset.css.style = **/*.css</code></pre>
         <td>When true, a gzipped version of each grouped asset will be generated</td>
       </tr>
       <tr>
+        <td>bust.cache</td>
+        <td>true</td>
+        <td>When true, each asset's last modified time will be appended to all corresponding URLs, including those found in your CSS.</td>
+      </tr>
+      <tr>
         <td>js.asset.<em>xxx</em></td>
         <td></td>
         <td>A <a href="http://ant.apache.org/manual/dirtasks.html#patterns">pattern</a> list defining a JavaScript asset named <em>xxx</em>.  The asset will be a concatentation of the optimized version of all matching files in the order given.</td>
