@@ -61,7 +61,8 @@ public class ZipperMojo extends AbstractMojo {
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
     configure();
-    createWorkDir();
+    deleteWorkDir();
+    new File(getOutputDir()).mkdirs();
     jsLintCheck();
     jsOptimize();
     cssMinify();
@@ -350,14 +351,6 @@ public class ZipperMojo extends AbstractMojo {
     String basePath = _project.getBasedir().getAbsolutePath();
     String webroot = _configuration.getString(ConfigKey.WEB_ROOT.getKey(), "src/main/webapp");
     return basePath + (webroot.startsWith("/") ? "" : "/") + webroot;
-  }
-  
-  /**
-   * 
-   */
-  private void createWorkDir() {
-    deleteWorkDir();
-    new File(getOutputDir()).mkdirs();
   }
   
   /**

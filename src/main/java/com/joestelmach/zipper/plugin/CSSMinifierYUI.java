@@ -12,9 +12,9 @@ import java.io.Writer;
 import com.yahoo.platform.yui.compressor.CssCompressor;
 
 /**
+ * A YUI CSS Minifier
  * 
  * @author Joe Stelmach
- *
  */
 public class CSSMinifierYUI {
   

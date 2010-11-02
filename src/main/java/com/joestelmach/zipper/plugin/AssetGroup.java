@@ -3,6 +3,11 @@ package com.joestelmach.zipper.plugin;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a concatenated group of JavaScript or CSS assets
+ * 
+ * @author Joe Stelmach
+ */
 public class AssetGroup {
   private String name;
   private List<String> includes;

@@ -152,7 +152,6 @@
       <artifactId>jsp-api-2.1</artifactId>
       <version>6.1.14</version>
     </dependency>
-    
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>

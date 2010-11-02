@@ -15,6 +15,12 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import com.joestelmach.util.FileSearcher;
 import com.joestelmach.zipper.plugin.ConfigKey;
 
+/**
+ * A custom tag used to selectively include configured assets depending 
+ * on the current running environemnt.
+ * 
+ * @author Joe Stelmach
+ */
 public class AssetTag extends SimpleTagSupport {
   private static Configuration _configuration;
   private static String _webrootDir;
