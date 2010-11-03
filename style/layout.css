@@ -8,7 +8,7 @@ body {
 h2 {
   font-size:20px;
   padding-bottom:0;
-  padding-top:40px;
+  padding-top:20px;
 }
 
 a {
@@ -40,8 +40,13 @@ li {
 }
 
 dt {
-  margin:20px 0 10px 0;
+  margin:0;
 }
+
+dd {
+  margin:10px 0 0 40px;
+}
+
 pre#heading {
   background-color:#444;
   color:#fff;
