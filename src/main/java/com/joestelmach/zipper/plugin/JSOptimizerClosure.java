@@ -2,13 +2,15 @@ package com.joestelmach.zipper.plugin;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+
+import com.google.javascript.jscomp.CompilationLevel;
+import com.google.javascript.jscomp.Compiler;
+import com.google.javascript.jscomp.CompilerOptions;
+import com.google.javascript.jscomp.JSSourceFile;
 
 /**
  * A simple wrapper around the Google closure compiler.
@@ -20,65 +22,48 @@ public class JSOptimizerClosure {
   /**
    * 
    */
-  public JSOptimizerClosure() {
-    unpackCompiler();
-  }
+  public JSOptimizerClosure() {}
   
   /**
    * 
    * @param inputFileName
-   * @param options 
+   * @param outputFileName
+   * @param level
    * @throws IOException
    * @throws InterruptedException
    */
-  public void optimize(String inputFileName, String outputFileName, String options) throws IOException, InterruptedException {
+  public void optimize(String inputFileName, String outputFileName, CompilationLevel level) 
+      throws IOException, InterruptedException {
+    
     // ensure our output dir exists
     String outDir = outputFileName.substring(0, outputFileName.lastIndexOf('/'));
     new File(outDir).mkdirs();
     
-    options = options != null ? options : "";
-    String command = "java -jar /tmp/compiler.jar " + options + " --js " + inputFileName + 
-      " --js_output_file " + outputFileName;
-    System.out.println(command);
-    Process proc = Runtime.getRuntime().exec(command);
+    // read in the javascript source
+    byte[] buffer = new byte[(int) new File(inputFileName).length()];
+    BufferedInputStream in = new BufferedInputStream(new FileInputStream(inputFileName));
+    in.read(buffer);
+    in.close();
+    String source = new String(buffer);
     
-    // print any errors to the console
-    BufferedReader in = new BufferedReader(  
-    new InputStreamReader(proc.getErrorStream()));  
-    String line = null;  
-    while ((line = in.readLine()) != null) {  
-      System.out.println(line);  
-    } 
+    // create our closure compiler
+    Compiler compiler = new Compiler();
     
-    // wait for the process to finish
-    proc.waitFor();
+    // TODO allow closure options to be specified
+    CompilerOptions options = new CompilerOptions();
+    level.setOptionsForCompilationLevel(options);
+    
+    JSSourceFile sourceFile = JSSourceFile.fromCode(inputFileName, source.toString());
+    
+    // TODO allow externs.js file to be specified
+    JSSourceFile externFile = JSSourceFile.fromCode("externs.js", "function alert(x) {}");
+    
+    compiler.compile(externFile, sourceFile, options);
+    String result = compiler.toSource();
+    
+    // write the result to the output file
+    BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(new File(outputFileName)));
+    output.write(result.getBytes());
+    output.close();
   }
-  
-  /**
-   * Unfortunately, google has decided not to place their compiler in any
-   * publicly available maven repository.  Since I want this plugin to 
-   * have no class path or custom repository dependencies, I've decided
-   * to bundle the compiler with the plugin and unpack it to the /tmp
-   * directory for use during execution.
-   * 
-   * see: http://code.google.com/p/closure-compiler/issues/detail?id=37
-   */
-  private void unpackCompiler() {
-    // write the closure compiler to the build dir
-    InputStream in = new BufferedInputStream(ZipperMojo.class.getResourceAsStream("/compiler.jar"));
-    try {
-      File file = new File("/tmp/compiler.jar");
-      //file.deleteOnExit();
-      OutputStream output = new BufferedOutputStream(new FileOutputStream(file));
-      while(in.available() > 0) {
-        output.write(in.read());
-      }
-      output.close();
-      in.close();
-    } catch(IOException e) {
-      e.printStackTrace();
-    }
-  }
-  
-
 }

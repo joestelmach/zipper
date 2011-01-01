@@ -10,7 +10,7 @@ public enum ConfigKey {
   LINT_EXCLUDES("lint.exclude"),
   LINT_FAIL_ON_WARNING("lint.failonwarning"),
   LINT_OPTION_PREFIX("lint.option"),
-  JS_OPTIMIZE_OPTIONS("js.optimize.options"),
+  JS_OPTIMIZE_LEVEL("js.optimize.level"),
   CSS_LINE_BREAK("css.line.break"),
   JS_ASSET_PREFIX("js.asset"),
   CSS_ASSET_PREFIX("css.asset"),

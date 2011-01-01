@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,14 +27,16 @@ import com.googlecode.jslint4java.Option;
 public class LinterJSLint {
   private Configuration _config;
   private Log _log;
+  private Map<String, String> _optionMap = new HashMap<String, String>();
   
   /**
    * 
    * @param config
    */
-  LinterJSLint(Configuration config, Log log) {
+  LinterJSLint(Configuration config, Log log, Map<String, String> optionMap) {
     _config = config;
     _log = log;
+    _optionMap = optionMap;
   }
   
   /**
@@ -52,12 +53,10 @@ public class LinterJSLint {
       
       // add configured lint options
       JSLint lint = new JSLintBuilder().fromDefault();
-      for(Entry<String,String>entry:getLintOptions().entrySet()) {
+      for(Entry<String,String>entry:_optionMap.entrySet()) {
         try {
           Option option = Option.valueOf(entry.getKey().toUpperCase());
           lint.addOption(option, entry.getValue());
-          _log.info("added lint option " + entry.getKey() + ": " + entry.getValue());
-          
         } catch(Exception e) {
           _log.warn("invalid lint option: " + entry.getKey());
         }
@@ -87,23 +86,6 @@ public class LinterJSLint {
         _log.error("could not close js stream for file: " + fileName);
       }
     }
-  }
-  
-  /**
-   * @return a map of lint options found in the configuration
-   */
-  private Map<String, String> getLintOptions() {
-    Map<String, String> map = new HashMap<String, String>();
-    String prefix = ConfigKey.LINT_OPTION_PREFIX.getKey();
-    
-    @SuppressWarnings("unchecked")
-    Iterator<String> iter = _config.getKeys(prefix);
-    while(iter.hasNext()) {
-      String key = iter.next();
-      map.put(key.substring(prefix.length() + 1), _config.getString(key));
-    }
-    
-    return map;
   }
   
   /**
