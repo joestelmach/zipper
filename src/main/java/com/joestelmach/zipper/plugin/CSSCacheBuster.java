@@ -21,7 +21,7 @@ import org.apache.maven.plugin.logging.Log;
  * @author Joe Stelmach
  */
 public class CSSCacheBuster {
-  private static final Pattern PATTERN = Pattern.compile("(.*url\\([',\"]?[^',\"]*)([',\"]?\\).*)");
+  private static final Pattern PATTERN = Pattern.compile("(url\\([^\\)]*)(\\))");
   
   private Log _log;
   
@@ -47,10 +47,11 @@ public class CSSCacheBuster {
     
     String css = readCss(file);
     Matcher matcher = PATTERN.matcher(css);
-    boolean found = matcher.find();
-    if(found && matcher.groupCount() == 2) {
-      String bustedCSS = matcher.replaceAll("$1?" + file.lastModified() + "$2");
-      writeCss(bustedCSS, file);
+    while(matcher.find()) {
+      if(matcher.groupCount() == 2) {
+        String bustedCSS = matcher.replaceAll("$1?" + file.lastModified() + "$2");
+        writeCss(bustedCSS, file);
+      }
     }
   }
   
