@@ -57,7 +57,6 @@
         </configuration>
       </plugin>
       
-      <!-- sign artifacts 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
@@ -71,7 +70,6 @@
           </execution>
         </executions>
       </plugin>
-      -->
       
       <!-- generate javadoc.jar -->
       <plugin>
