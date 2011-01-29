@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.joestelmach</groupId>
   <artifactId>zipper</artifactId>
-  <version>0.2</version>
+  <version>0.3-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
   <name>Zipper</name>
   <description>
