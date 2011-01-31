@@ -264,13 +264,13 @@ public class ZipperMojo extends AbstractMojo {
             "http://ant.apache.org/manual/dirtasks.html#patterns");
         }
         else {
-          getLog().info("adding file: " + asset);
+          getLog().info("adding file: " + asset + " to " + outputFileName);
           writeAssetToStream(asset, output);
-          writeAssetToStream(asset, gzipOutput);
+          if(gzip) writeAssetToStream(asset, gzipOutput);
         }
       }
         
-    } catch (IOException e) {
+    } catch (Exception e) {
       getLog().error("couldn't create asset file " + outputFileName, e);
       throw new MojoExecutionException("Something went wrong combining assets.", e);
       
@@ -350,7 +350,8 @@ public class ZipperMojo extends AbstractMojo {
   private String getOutputDir() {
     String folderName = _configuration.getString(ConfigKey.OUTPUT_DIR.getKey(), DEFAULT_OUTPUT_DIR);
     if(folderName.startsWith("/")) folderName = folderName.substring(1);
-    return _project.getBuild().getOutputDirectory() + "/" + folderName;
+    return _project.getBuild().getFinalName() + "/" + folderName;
+    //return _project.getBuild().getOutputDirectory() + "/" + folderName;
   }
   
   /**
