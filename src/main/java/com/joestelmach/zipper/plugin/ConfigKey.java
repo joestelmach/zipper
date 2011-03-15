@@ -12,6 +12,7 @@ public enum ConfigKey {
   LINT_OPTION_PREFIX("lint.option"),
   JS_OPTIMIZE_LEVEL("js.optimize.level"),
   CSS_LINE_BREAK("css.line.break"),
+  ASSET_PATH_PREFIX("asset.path.prefix"),
   JS_ASSET_PREFIX("js.asset"),
   CSS_ASSET_PREFIX("css.asset"),
   GZIP("gzip"),

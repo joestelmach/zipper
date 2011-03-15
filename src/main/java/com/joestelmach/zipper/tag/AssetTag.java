@@ -25,6 +25,7 @@ public class AssetTag extends SimpleTagSupport {
   private static Configuration _configuration;
   private static String _webrootDir;
   private static String _assetsDir;
+  private static String _prefix;
   private static final String DEVELOPMENT_ENVIRONMENT = "development";
   private static final String CSS_TYPE = "css";
   private static final String JS_TYPE = "js";
@@ -40,6 +41,8 @@ public class AssetTag extends SimpleTagSupport {
   static {
     try {
       _configuration = new PropertiesConfiguration("zipper.properties");
+      _prefix = _configuration.getString(ConfigKey.ASSET_PATH_PREFIX.getKey(), null);
+      if(_prefix != null && _prefix.startsWith("/")) _prefix = _prefix.substring(1);
       
     } catch (ConfigurationException e) {
       e.printStackTrace();
@@ -52,14 +55,19 @@ public class AssetTag extends SimpleTagSupport {
   public void doTag() throws JspException, IOException {
     if(!_type.equals(CSS_TYPE) && !_type.equals(JS_TYPE)) return;
    
+    String environment = getEnvironment();
     if(_assetsDir == null) {
       String outputDir = _configuration.getString(ConfigKey.OUTPUT_DIR.getKey(), "assets");
       PageContext context = (PageContext) getJspContext();
       _webrootDir = context.getServletContext().getRealPath("/");
-      _assetsDir = _webrootDir + "/" + outputDir;
+      if(!environment.equals(DEVELOPMENT_ENVIRONMENT)) {
+        _assetsDir = _webrootDir + (_prefix != null ? ("/" + _prefix) : "") + "/" + outputDir;
+      }
+      else {
+        _assetsDir = _webrootDir + "/" + outputDir;
+      }
     }
     
-    String environment = getEnvironment();
     if(environment == null || environment.length() == 0 || environment.equals(DEVELOPMENT_ENVIRONMENT)) {
       writeDevelopment();
     }
@@ -117,6 +125,7 @@ public class AssetTag extends SimpleTagSupport {
     boolean bustCache = _configuration.getBoolean(ConfigKey.BUST_CACHE.getKey(), true);
     
     File file = new File(_assetsDir + "/" + _name + "." + _type);
+    System.out.println(file.getAbsolutePath());
     if(file.exists()) {
       String relativePath = file.getAbsolutePath().substring(_webrootDir.length());
       if(bustCache) {

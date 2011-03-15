@@ -350,8 +350,7 @@ public class ZipperMojo extends AbstractMojo {
   private String getOutputDir() {
     String folderName = _configuration.getString(ConfigKey.OUTPUT_DIR.getKey(), DEFAULT_OUTPUT_DIR);
     if(folderName.startsWith("/")) folderName = folderName.substring(1);
-    return _project.getBuild().getFinalName() + "/" + folderName;
-    //return _project.getBuild().getOutputDirectory() + "/" + folderName;
+    return _project.getBuild().getOutputDirectory() + "/" + folderName;
   }
   
   /**
