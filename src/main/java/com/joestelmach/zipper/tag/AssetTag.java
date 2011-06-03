@@ -127,7 +127,7 @@ public class AssetTag extends SimpleTagSupport {
     File file = new File(_assetsDir + "/" + _name + "." + _type);
     System.out.println(file.getAbsolutePath());
     if(file.exists()) {
-      String relativePath = file.getAbsolutePath().substring(_webrootDir.length());
+      String relativePath = file.getAbsolutePath().substring(_webrootDir.length()).replaceAll("\\", "/");
       if(bustCache) {
         String cacheBustSuffix = "?" + file.lastModified();
         relativePath += cacheBustSuffix;
