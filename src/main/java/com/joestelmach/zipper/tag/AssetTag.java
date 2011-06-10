@@ -127,7 +127,7 @@ public class AssetTag extends SimpleTagSupport {
     File file = new File(_assetsDir + "/" + _name + "." + _type);
     System.out.println(file.getAbsolutePath());
     if(file.exists()) {
-      String relativePath = file.getAbsolutePath().substring(_webrootDir.length()).replaceAll("\\", "/");
+      String relativePath = file.getAbsolutePath().substring(_webrootDir.length()).replaceAll("\\\\", "/");
       if(bustCache) {
         String cacheBustSuffix = "?" + file.lastModified();
         relativePath += cacheBustSuffix;
@@ -155,7 +155,7 @@ public class AssetTag extends SimpleTagSupport {
     for(String pattern:patterns) {
       String searchDir = new File(_assetsDir).exists() ? _assetsDir : _webrootDir;
       for(String include:_searcher.search(pattern, searchDir)) {
-        include = include.substring(searchDir.length());
+        include = include.substring(searchDir.length()).replaceAll("\\\\", "/");;
         writer.write(_type.equals(CSS_TYPE) ? getCssInclude(include) : getJsInclude(include));
         writer.write("\n");
       }
